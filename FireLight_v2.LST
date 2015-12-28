@@ -1,0 +1,3164 @@
+1			   1: ;*****************************************************
+2			   2: ;Company :
+3			   3: ;File Name : FireLight.asm
+4			   4: ;Author :
+5			   5: ;Create Data : 2015-12-16
+6			   6: ;Last Modified : 2015-12-16
+7			   7: ;Description :
+8			   8: ;Version : 2.0
+9			   9: ;*****************************************************
+10			   
+11			   11: LIST P=69P48
+12			   12: ROMSIZE=4096
+13			   
+14			   14: ;*****************************************************
+15			   15: ;系统寄存器 ($000 ~ $02F, $380 ~ $38C)
+16			   16: ;*****************************************************
+17			   17: IE		EQU	00H		;中断使能/禁能控制
+18			   18: IRQ		EQU	01H		;中断请求标志
+19			   
+20			   20: TM0		EQU	02H		;Timer0 模式寄存器
+21			   21: TM1		EQU	03H		;Timer1 模式寄存器
+22			   
+23			   23: TL0		EQU	04H		;Timer0 重载值低4位
+24			   24: TH0		EQU	05H		;Timer0 重载值高4位
+25			   
+26			   26: TL1		EQU	06H		;Timer1 重载值低4位
+27			   27: TH1		EQU	07H		;Timer1 重载值高4位
+28			   
+29			   29: PORTA		EQU	08H		;PortA 数据寄存器
+30			   30: PORTB		EQU	09H		;PortB 数据寄存器
+31			   31: PORTC		EQU	0AH		;PortC 数据寄存器
+32			   32: PORTD		EQU	0BH		;PortD 数据寄存器
+33			   33: PORTE		EQU	0CH		;PortE 数据寄存器
+34			   
+35			   35: 					;0DH Reserved
+36			   36: 				
+37			   37: TBR		EQU	0EH		;查表寄存器
+38			   38: INX		EQU	0FH		;间接寻址伪索引寄存器
+39			   39: DPL		EQU	10H		;INX数据指针低4位
+40			   40: DPM		EQU	11H		;INX数据指针中4位
+41			   41: DPH		EQU	12H		;INX数据指针高4位
+42			   
+43			   43: TCTL1		EQU	13H		;Timer1 控制寄存器
+44			   
+45			   45: ADCCTL		EQU	14H		;ADC 使能与参考电压
+46			   46: ADCCFG		EQU	15H		;ADC configuration
+47			   47: ADCPORT		EQU	16H		;ADC PORT CONFIGURATION
+48			   48: ADCCHN		EQU	17H		;ADC channel selection
+49			   
+50			   50: PACR		EQU	18H		;PortA 控制寄存器
+51			   51: PBCR		EQU	19H		;PortB 控制寄存器
+52			   52: PCCR		EQU	1AH		;PortC 控制寄存器
+53			   53: PDCR		EQU	1BH		;PortD 控制寄存器
+54			   54: PECR		EQU	1CH		;PortE 控制寄存器
+55			   
+56			   56: 					;1DH Reserved
+57			   57: 					
+58			   58: WDT		EQU	1EH		;Whichdog timer control
+59			   59: 					
+60			   
+61			   61: PWMC0		EQU	20H		;PWM0 控制寄存器
+62			   62: PWMC1		EQU	21H		;PWM1 控制寄存器
+63			   
+64			   64: PWMP00		EQU	22H		;PWM0 周期控制寄存器低4位
+65			   65: PWMP01		EQU	23H		;PWM0 周期控制寄存器高4位
+66			   
+67			   67: PWMD00		EQU	24H		;PWM0 占空比控制寄存器低2位
+68			   68: PWMD01		EQU	25H		;PWM0 占空比控制寄存器中4位
+69			   69: PWMD02		EQU	26H		;PWM0 占空比控制寄存器高4位
+70			   
+71			   71: PWMP10		EQU	27H		;PWM1 周期控制寄存器低4位
+72			   72: PWMP11		EQU	28H		;PWM1 周期控制寄存器高4位
+73			   
+74			   74: PWMD10		EQU	29H		;PWM1 占空比控制寄存器低2位
+75			   75: PWMD11		EQU	2AH		;PWM1 占空比控制寄存器中4位
+76			   76: PWMD12		EQU	2BH		;PWM1 占空比控制寄存器高4位
+77			   
+78			   78: 					;2CH Reserved
+79			   79: 					
+80			   80: AD_RET0		EQU	2DH		;ADC 转换结果低2位
+81			   81: AD_RET1		EQU	2EH		;ADC 转换结果中4位
+82			   82: AD_RET2		EQU	2FH		;ADC 转换结果高4位
+83			   
+84			   
+85			   85: PPACR 		EQU 	388H		;PORTA 口上拉电阻控制寄存器 
+86			   86: PPBCR 		EQU 	389H		;PORTB 口上拉电阻控制寄存器 
+87			   87: PPCCR 		EQU 	38AH		;PORTC 口上拉电阻控制寄存器 
+88			   88: PPDCR 		EQU 	38BH		;PORTD 口上拉电阻控制寄存器 
+89			   89: PPECR 		EQU 	38CH		;PORTE 口上拉电阻控制寄存器 
+90			   
+91			   
+92			   92: ;*****************************************************
+93			   93: ;用户自定义寄存器 ($030 ~ $0EF)
+94			   94: ;*****************************************************
+95			   95: ;Bank0
+96			   96: ;------------------------------------------------------------------
+97			   97: AC_BAK 		EQU 	30H 		;AC 值备份寄存器
+98			   
+99			   99: SYSTEM_STATE	EQU	31H		;bit 0:  0 - 主电状态(主电源正常),  1 - 应急状态(主电源停电)
+100			   
+101			   101: SELF_STATE	EQU	32H		;bit 0:  0 - 主电状态(主电源正常),  1 - 模拟应急状态(模拟主电源停电)
+102			   102: 					;bit 1:  0 - 非月检状态,	         1 - 月检状态
+103			   103: 					;bit 2:  0 - 非年检状态,	         1 - 年检状态
+104			   104: 					;bit 3:  0 - 自动模式	         1 - 手动模式
+105			   105: 					;注释:自动模式是指，bit 0 - bit 2 均为时间流逝或是停电导致系统进入的相应状态
+106			   106: 					;手动模式是指，bit 0 - bit 2 均为通过持续不同时长的按键而导致系统进入的相应状态
+107			   
+108			   108: ALREADY_ENTER	EQU	33H		;bit 0:  0 - 当前并未开始充电,      1 - 当前已经开始充电
+109			   109: 					;bit 1:  0 - 当前并未开始放电(应急),1 - 当前已经开始放电(应急)
+110			   110: 					;bit 2:  0 - 当前并未进入手动月检,  1 - 当前已经进入手动月检状态
+111			   111: 					;bit 3:  0 - 当前并未进入手动年检,  1 - 当前已经进入手动年检状态
+112			   112: 				
+113			   113: ; 用于TIMER 定时
+114			   114: F_496MS_1S	EQU	35H		;bit0 = 1, 496ms 到，供按键检测使用
+115			   115: 					;bit1 = 1, 1s 到，用于计时应急时长
+116			   116: 					
+117			   117: F_TIME 		EQU 	36H 		;bit0 = 1, 1秒到; 
+118			   118: 					;bit1 = 1, 1月到; 
+119			   119: 					;bit2 = 1, 1年到; 
+120			   120: 					;bit3 = 1, 1分钟到。
+121			   
+122			   122: CNT0_8MS 	EQU 	37H	 	;CNT1_8MS, CNT0_8MS组成的8BIT数据达到125时，即Timer0产生125次中断后，表示1S计时已到
+123			   123: CNT1_8MS 	EQU 	38H 		;所以，初始化CNT1_8MS=07H, CNT0_8MS=0DH
+124			   
+125			   125: SEC_CNT0	EQU	39H		;SEC_CNT0/1/2 以秒为单位计时
+126			   126: SEC_CNT1	EQU	3AH		;当数值达到1小时，即3600(E10H)秒时，向HOUR_CNT0/1进位，自身清零。
+127			   127: SEC_CNT2	EQU	3BH
+128			   
+129			   129: HOUR_CNT0	EQU	3CH		;HOUR_CNT0/1 以小时为单位计时
+130			   130: HOUR_CNT1	EQU	3DH		;当数值达到1月时，即744(2EBH)小时时，向MONTH_CNT0/1进位，同时置F_TIME.1，自身清零。
+131			   131: HOUR_CNT2	EQU	3EH		
+132			   
+133			   133: MONTH_CNT	EQU	3FH		;MONTH_CNT0/1 以月为单位计时
+134			   134: 					;当数值达到1年时，即12(0CH)月时，，同时置F_TIME.2，自身清零。
+135			   
+136			   136: TEMP_SUM_CY	EQU	40H		;AD子程序参数临时变量
+137			   137: FLAG_OCCUPIED	EQU	41H		;bit0/1/2/3 = 1时分别表示CHN0、1、6、7的转换结果(CHN0_FINAL_RET1等)正被前台使用,
+138			   138: 					;此时ADC中断不能修改这些数据。	
+139			   
+140			   140: FLAG_TYPE	EQU	42H		;bit0 = 1表示已经完成灯具类型选择(PORTB.3/AN7),此位为1后不再需要对AN7进行AD采样
+141			   
+142			   
+143			   143: CMP_MIN_PWR0	EQU	43H		;上电自检时，灯具电源最小电压值.(1.396V -> 0x23B ->(丢弃最低2位) 0x8E)
+144			   144: CMP_MIN_PWR1	EQU	44H		;
+145			   
+146			   146: CMP_TYPE00	EQU	45H		;灯具类型门限0
+147			   147: CMP_TYPE01	EQU	46H		;
+148			   
+149			   149: CMP_TYPE10	EQU	47H		;灯具类型门限1
+150			   150: CMP_TYPE11	EQU	48H		;
+151			   
+152			   152: CMP_TYPE20	EQU	49H		;灯具类型门限2
+153			   153: CMP_TYPE21	EQU	4AH		;
+154			   
+155			   155: LIGHT_TYPE	EQU	4BH		;灯具类型
+156			   156: 					;bit0 = 1, 锂电池，常亮型
+157			   157: 					;bit1 = 1, 锂电池，常灭型
+158			   158: 					;bit2 = 1, 镍镉电池，常亮型
+159			   159: 					;bit3 = 1, 镍镉电池，常灭型
+160			   
+161			   161: CMP_SUPPLY0	EQU	4CH		;检测到电源电压小于此数值时，开始应急放电.(1.115V -> 0x5B)
+162			   162: CMP_SUPPLY1	EQU	4DH
+163			   
+164			   164: DURATION_EMER	EQU	4EH		;bit0 = 1, 应急时长小于5分钟
+165			   165: 					;bit1 = 1, 应急时长大于5分钟，小于30分钟
+166			   166: 					;bit2 = 1, 应急时长大于30分钟
+167			   167: 					
+168			   168: CNT0_EMERGENCY	EQU	4FH		;对应急时长计时，单位s
+169			   169: CNT1_EMERGENCY	EQU	50H
+170			   170: CNT2_EMERGENCY	EQU	51H
+171			   
+172			   172: CMP_EXIT_EMER0	EQU	52H		;检测到电池电压小于此数值时(0.96V -> 0x62)，应该关闭应急放电功能
+173			   173: CMP_EXIT_EMER1	EQU	53H
+174			   
+175			   175: CMP_BAT_OPEN0	EQU	54H		;检测到电池电压大于此数值时(1.56V -> 0x9F)，视为电池充电回路开路
+176			   176: CMP_BAT_OPEN1	EQU	55H
+177			   
+178			   178: CMP_BAT_FULL0	EQU	56H		;检测到电池电压大于此数值时(1.44V -> 0x93)，视为电池已充满
+179			   179: CMP_BAT_FULL1	EQU	57H
+180			   
+181			   181: CMP_BAT_CHARGE0	EQU	58H		;检测到电池电压小于此数值时(1.35V -> 0x8A)，视为电池得开始充电了
+182			   182: CMP_BAT_CHARGE1	EQU	59H
+183			   
+184			   
+185			   
+186			   186: BAT_STATE	EQU	58H		;bit0 = 0, 表示充电回路未开路；bit0 = 1, 表示充电回路开路
+187			   187: 					;bit1 = 0, 表示电池未充满；bit1 = 1, 表示电池已充满
+188			   188: 					;bit2 = 0, 表示电池还不需要充电；bit2 = 1, 表示电池需要充电
+189			   189: 					;bit3 = 1, 表示电池电压过低，不能再继续应急放电了
+190			   
+191			   
+192			   192: CMP_LIGHT0	EQU	59H		;供光源检测使用,AD转换结果小于此数值时(0.2V -> 0x14)，表示光源产生故障
+193			   193: CMP_LIGHT1	EQU	5AH
+194			   
+195			   195: LIGHT_STATE	EQU	5BH		;bit0 = 1, 表示光源故障
+196			   
+197			   
+198			   198: ALARM_STATE	EQU	5CH		;bit0 = 1, 表示电池故障(开路或短路)
+199			   199: 					;bit1 = 1, 表示光源故障(开路或短路)
+200			   200: 					;bit2 = 1, 表示自检放电时间不足
+201			   
+202			   
+203			   203: CNT_LED_YELLOW	EQU	5FH		;计数器，供翻转黄灯输出使用，计时单位为168MS
+204			   
+205			   
+206			   206: FLAG_SIMU_EMER	EQU	60H		;bit0 = 1, 表示在"模拟停电"状态下已经打开应急功能
+207			   207: 					;bit1 = 1表示1s已到
+208			   
+209			   209: CNT0_1MINUTE	EQU	61H		;每1秒加1，直至计时满1分钟为止
+210			   210: CNT1_1MINUTE	EQU	62H
+211			   
+212			   
+213			   213: CNT0_CHARGE	EQU	63H		;还应充电多长时间，初始值为20小时，即20 * 60 =1200分钟(0x4B0)
+214			   214: CNT1_CHARGE	EQU	64H
+215			   215: CNT2_CHARGE	EQU	65H
+216			   
+217			   217: GREEN_FLASH	EQU	66H		;用于手动月检或手动年检时的LED闪烁
+218			   218: 					;BIT1 = 1, 按键时长超过了3秒，绿灯开始以1HZ的频率闪烁
+219			   219: 					;BIT2 = 1, 按键时长超过了5秒，绿灯开始以3HZ的频率闪烁
+220			   
+221			   
+222			   222: CNT_LED_GREEN	EQU	67H		;供绿色LED翻转用
+223			   
+224			   224: ;按键相关寄存器
+225			   225: DELAY_TIMER2	EQU	71H		;延时子程序使用
+226			   226: DELAY_TIMER1	EQU	72H		;延时子程序使用
+227			   227: DELAY_TIMER0	EQU	73H		;延时子程序使用
+228			   228: CLEAR_AC 	EQU 	74H 		;清除累加器A 值用寄存器
+229			   229: TEMP 		EQU 	75H 		;临时寄存器
+230			   
+231			   231: CNT0_496MS	EQU	76H		;用于定时496MS
+232			   232: CNT1_496MS	EQU	77H
+233			   
+234			   234: BTN_PRE_STA	EQU	78H		;bit0储存上一次按键状态,0:按下,1:未按下
+235			   235: BTN_PRESS_CNT	EQU	79H		;按键按下时长，单位为496ms
+236			   
+237			   
+238			   238: ;led
+239			   239: CNT0_168MS	EQU	7AH		;用于定时168MS,供翻转LED用
+240			   240: CNT1_168MS	EQU	7BH
+241			   
+242			   242: F_168MS		EQU	7CH		;每168ms将bit0 = 1
+243			   
+244			   244: CMP_RESUME0	EQU	7DH		;检测到电源电压大于此数值时，表示市电供电已恢复，应关闭应急.(1.396V -> 0x8E)
+245			   245: CMP_RESUME1	EQU	7EH
+246			   
+247			   247: PRESS_DURATION	EQU	7FH		;按键被按下持续时长标志
+248			   248: 					;bit0 = 1;  被按下时长小于3秒
+249			   249: 					;bit1 = 1;  被按下时长大于3秒，小于5秒
+250			   250: 					;bit2 = 1;  被按下时长大于5秒，小于7秒
+251			   251: 					;bit3 = 1;  被按下时长大于7秒
+252			   
+253			   253: ;Bank1(以下寄存器真实地址应加上80H)
+254			   254: ;------------------------------------------------------------------
+255			   255: CHN0_RET0_BAK0	EQU	00H		;ADC CHN0 转换结果低2位备份
+256			   256: CHN0_RET1_BAK0	EQU	01H		;ADC CHN0 转换结果中4位备份
+257			   257: CHN0_RET2_BAK0	EQU	02H		;ADC CHN0 转换结果高4位备份
+258			   
+259			   259: CHN0_RET0_BAK1	EQU	03H		;ADC CHN0 转换结果低2位备份
+260			   260: CHN0_RET1_BAK1	EQU	04H		;ADC CHN0 转换结果中4位备份
+261			   261: CHN0_RET2_BAK1	EQU	05H		;ADC CHN0 转换结果高4位备份
+262			   
+263			   263: CHN0_RET0_BAK2	EQU	06H		;ADC CHN0 转换结果低2位备份
+264			   264: 
+265			   265: CHN0_RET2_BAK2	EQU	08H		;ADC CHN0 转换结果高4位备份
+266			   
+267			   267: CHN0_RET0_BAK3	EQU	09H		;ADC CHN0 转换结果低2位备份
+268			   268: CHN0_RET1_BAK3	EQU	0AH		;ADC CHN0 转换结果中4位备份
+269			   269: CHN0_RET2_BAK3	EQU	0BH		;ADC CHN0 转换结果高4位备份
+270			   
+271			   271: CHN0_FINAL_RET0	EQU	0CH		;通道0平均后的结果
+272			   272: CHN0_FINAL_RET1	EQU	0DH		;
+273			   273: CHN0_FINAL_RET2	EQU	0EH
+274			   
+275			   275: DET0_CT		EQU	0FH		;ADC 通道0 转换结果个数
+276			   
+277			   277: ;------------------------------------------------------------------
+278			   278: CHN1_RET0_BAK0	EQU	10H		;ADC CHN1 转换结果低2位备份
+279			   279: CHN1_RET1_BAK0	EQU	11H		;ADC CHN1 转换结果中4位备份
+280			   280: CHN1_RET2_BAK0	EQU	12H		;ADC CHN1 转换结果高4位备份
+281			   
+282			   282: CHN1_RET0_BAK1	EQU	13H		;ADC CHN1 转换结果低2位备份
+283			   283: CHN1_RET1_BAK1	EQU	14H		;ADC CHN1 转换结果中4位备份
+284			   284: CHN1_RET2_BAK1	EQU	15H		;ADC CHN1 转换结果高4位备份
+285			   
+286			   286: CHN1_RET0_BAK2	EQU	16H		;ADC CHN1 转换结果低2位备份
+287			   287: CHN1_RET1_BAK2	EQU	17H		;ADC CHN1 转换结果中4位备份
+288			   288: CHN1_RET2_BAK2	EQU	18H		;ADC CHN1 转换结果高4位备份
+289			   
+290			   290: CHN1_RET0_BAK3	EQU	19H		;ADC CHN1 转换结果低2位备份
+291			   291: CHN1_RET1_BAK3	EQU	1AH		;ADC CHN1 转换结果中4位备份
+292			   292: CHN1_RET2_BAK3	EQU	1BH		;ADC CHN1 转换结果高4位备份
+293			   
+294			   294: CHN1_FINAL_RET0	EQU	1CH		;通道1平均后的结果
+295			   295: CHN1_FINAL_RET1	EQU	1DH		;
+296			   296: CHN1_FINAL_RET2	EQU	1EH		;
+297			   
+298			   298: DET1_CT		EQU	1FH		;ADC 通道1 转换结果个数
+299			   
+300			   300: ;------------------------------------------------------------------
+301			   301: CHN6_RET0_BAK0	EQU	20H		;ADC CHN6 转换结果低2位备份
+302			   302: CHN6_RET1_BAK0	EQU	21H		;ADC CHN6 转换结果中4位备份
+303			   303: CHN6_RET2_BAK0	EQU	22H		;ADC CHN6 转换结果高4位备份
+304			   
+305			   305: CHN6_RET0_BAK1	EQU	23H		;ADC CHN6 转换结果低2位备份
+306			   306: CHN6_RET1_BAK1	EQU	24H		;ADC CHN6 转换结果中4位备份
+307			   307: CHN6_RET2_BAK1	EQU	25H		;ADC CHN6 转换结果高4位备份
+308			   
+309			   309: CHN6_RET0_BAK2	EQU	26H		;ADC CHN6 转换结果低2位备份
+310			   310: CHN6_RET1_BAK2	EQU	27H		;ADC CHN6 转换结果中4位备份
+311			   311: CHN6_RET2_BAK2	EQU	28H		;ADC CHN6 转换结果高4位备份
+312			   
+313			   313: CHN6_RET0_BAK3	EQU	29H		;ADC CHN6 转换结果低2位备份
+314			   314: CHN6_RET1_BAK3	EQU	2AH		;ADC CHN6 转换结果中4位备份
+315			   315: CHN6_RET2_BAK3	EQU	2BH		;ADC CHN6 转换结果高4位备份
+316			   
+317			   317: CHN6_FINAL_RET0	EQU	2CH		;通道6平均后的结果
+318			   318: CHN6_FINAL_RET1	EQU	2DH		;
+319			   319: CHN6_FINAL_RET2	EQU	2EH
+320			   
+321			   321: DET6_CT		EQU	2FH		;ADC 通道6 转换结果个数
+322			   
+323			   323: ;------------------------------------------------------------------
+324			   324: CHN7_RET0_BAK0	EQU	30H		;ADC CHN7 转换结果低2位备份
+325			   325: CHN7_RET1_BAK0	EQU	31H		;ADC CHN7 转换结果中4位备份
+326			   326: CHN7_RET2_BAK0	EQU	32H		;ADC CHN7 转换结果高4位备份
+327			   
+328			   328: CHN7_RET0_BAK1	EQU	33H		;ADC CHN7 转换结果低2位备份
+329			   329: CHN7_RET1_BAK1	EQU	34H		;ADC CHN7 转换结果中4位备份
+330			   330: CHN7_RET2_BAK1	EQU	35H		;ADC CHN7 转换结果高4位备份
+331			   
+332			   332: CHN7_RET0_BAK2	EQU	36H		;ADC CHN7 转换结果低2位备份
+333			   333: CHN7_RET1_BAK2	EQU	37H		;ADC CHN7 转换结果中4位备份
+334			   334: CHN7_RET2_BAK2	EQU	38H		;ADC CHN7 转换结果高4位备份
+335			   
+336			   336: CHN7_RET0_BAK3	EQU	39H		;ADC CHN7 转换结果低2位备份
+337			   337: CHN7_RET1_BAK3	EQU	3AH		;ADC CHN7 转换结果中4位备份
+338			   338: CHN7_RET2_BAK3	EQU	3BH		;ADC CHN7 转换结果高4位备份
+339			   
+340			   340: CHN7_FINAL_RET0	EQU	3CH		;通道7平均后的结果
+341			   341: CHN7_FINAL_RET1	EQU	3DH		;
+342			   342: CHN7_FINAL_RET2	EQU	3EH		;
+343			   
+344			   344: DET7_CT		EQU	3FH		;ADC 通道7 转换结果个数
+345			   
+346			   
+347			   347: ;*****************************************************
+348			   348: ;程序
+349			   349: ;*****************************************************
+350			   350: 	ORG	0000H
+351			   
+352			   352: 	;中断向量表
+353	0x0000	0xe106	   353: 	JMP	RESET			;RESET ISP
+354	0x0001	0xe03d	   354: 	JMP	ADC_ISP			;ADC INTERRUPT ISP
+355	0x0002	0xe005	   355: 	JMP	TIMER0_ISP		;TIMER0 ISP
+356	0x0003	0xd400	   356: 	RTNI				;TIMER1 ISP
+357	0x0004	0xd400	   357: 	RTNI				;PORTB/D ISP
+358			   
+359			   
+360			   360: ;*****************************************************
+361			   361: ;Timer0 中断服务程序
+362			   362: ;Timer0已配置为每8ms产生一次中断
+363			   363: ;
+364			   364: ;*****************************************************
+365			   365: TIMER0_ISP:
+366	0x0005	0x3c30	   366: 	STA 	AC_BAK,		00H 	;备份AC 值
+367	0x0006	0x7581	   367: 	ANDIM 	IRQ,		1011B 	;清TIMER0 中断请求标志
+368			   
+369			   369: J_168MS:
+370	0x0007	0x58fa	   370: 	SBIM	CNT0_168MS,	01H
+371	0x0008	0x780e	   371: 	LDI	TBR,		00H
+372	0x0009	0x147b	   372: 	SBCM	CNT1_168MS
+373	0x000a	0x980e	   373: 	BC	J_496MS
+374			   
+375	0x000b	0x7a7a	   375: 	LDI	CNT0_168MS,	04H	;8ms * 21 = 168ms
+376	0x000c	0x78fb	   376: 	LDI	CNT1_168MS,	01H
+377			   
+378	0x000d	0x68fc	   378: 	ORIM	F_168MS,	0001B	;设置 "168ms 到"标志，翻转LED用
+379			   
+380			   380: J_496MS:
+381	0x000e	0x58f6	   381: 	SBIM 	CNT0_496MS,	01H	;每次Timer0中断产生后，将CNT0_496MS减1
+382	0x000f	0x780e	   382: 	LDI	TBR,		00H	;将累加器A 清0
+383	0x0010	0x1477	   383: 	SBCM	CNT1_496MS		;每次CNT0-1产生借位时，将CNT1_496MS减1
+384	0x0011	0x9815	   384: 	BC	J_1S			;如果未产生借位，则表示496MS还未计满
+385			   
+386	0x0012	0x7ef6	   386: 	LDI 	CNT0_496MS,	0DH 	;重置496ms 计数器,496 = 8 * 62
+387	0x0013	0x79f7	   387: 	LDI 	CNT1_496MS,	03H 	;重置496ms 计数器
+388			   388: 	
+389	0x0014	0x68b5	   389: 	ORIM 	F_496MS_1S,	0001B 	;设置 "496ms 到"标志
+390			   390: 	
+391			   391: J_1S:	
+392	0x0015	0x58b7	   392: 	SBIM 	CNT0_8MS,	01H	;每次Timer0中断产生后，将CNT0_8MS减1
+393	0x0016	0x780e	   393: 	LDI	TBR,		00H
+394	0x0017	0x1438	   394: 	SBCM	CNT1_8MS		;每次CNT0_8MS-1产生借位时，将CNT1_8MS减1
+395	0x0018	0x983a	   395: 	BC	TIMER0_ISP_END
+396			   396: 	
+397	0x0019	0x7e37	   397: 	LDI 	CNT0_8MS,	0CH 	;重置1s 计数器 1S = 125 * 8 MS
+398	0x001a	0x7bb8	   398: 	LDI 	CNT1_8MS,	07H 	;重置1s 计数器
+399			   399: 	
+400	0x001b	0x68b6	   400: 	ORIM 	F_TIME,		0001B 	;设置 "1s 到"标志
+401	0x001c	0x6935	   401: 	ORIM	F_496MS_1S,	0010B	;为应急功能提供 "1s 到"标志
+402	0x001d	0x6960	   402: 	ORIM	FLAG_SIMU_EMER,	0010B	;为手动自检提供 "1s 到"标志
+403			   
+404			   404: J_MINUTE:
+405	0x001e	0x58e1	   405: 	SBIM	CNT0_1MINUTE,	01H
+406	0x001f	0x780e	   406: 	LDI	TBR,		00H
+407	0x0020	0x1462	   407: 	SBCM	CNT1_1MINUTE
+408	0x0021	0x9825	   408: 	BC	J_HOUR			;因为J_HOUR是以秒为单位累加，所以应跳至J_HOUR
+409			   
+410	0x0022	0x7de1	   410: 	LDI	CNT0_1MINUTE,	0BH	;0x3c * 1s = 60s
+411	0x0023	0x79e2	   411: 	LDI	CNT1_1MINUTE,	03H
+412			   
+413	0x0024	0x6c36	   413: 	ORIM	F_TIME,		1000B	;设置 "1分钟 到"标志	
+414			   
+415			   415: J_HOUR:
+416	0x0025	0x58b9	   416: 	SBIM	SEC_CNT0,	01H	;SEC_CNT0 每秒减1
+417	0x0026	0x780e	   417: 	LDI	TBR,		00H
+418	0x0027	0x143a	   418: 	SBCM	SEC_CNT1		;每次SEC_CNT0-1产生借位时，将SEC_CNT1减1
+419	0x0028	0x780e	   419: 	LDI	TBR,		00H
+420	0x0029	0x143b	   420: 	SBCM	SEC_CNT2		;每次SEC_CNT1-1产生借位时，将SEC_CNT2减1
+421	0x002a	0x983a	   421: 	BC	TIMER0_ISP_END		;SEC_CNT2减1产生借位时，则表示1小时计时已到
+422			   422: 	
+423	0x002b	0x7fb9	   423: 	LDI 	SEC_CNT0,	0FH 	;重置SEC_CNT0/1/2 为E10H-1(3600-1)
+424	0x002c	0x783a	   424: 	LDI 	SEC_CNT1,	00H
+425	0x002d	0x7f3b	   425: 	LDI 	SEC_CNT2,	0EH
+426			   426: 	
+427			   427: J_MONTH:	
+428	0x002e	0x58bc	   428: 	SBIM 	HOUR_CNT0,	01H	;HOUR_CNT0 每小时减1
+429	0x002f	0x780e	   429: 	LDI	TBR,		00H
+430	0x0030	0x143d	   430: 	SBCM	HOUR_CNT1		;每次 HOUR_CNT0 产生借位时，将 HOUR_CNT1 减1
+431	0x0031	0x983a	   431: 	BC	TIMER0_ISP_END		;HOUR_CNT1 减1产生借位时，则表示1月计时已到
+432			   432: 	
+433	0x0032	0x7bbc	   433: 	LDI 	HOUR_CNT0,	07H 	;重置HOUR_CNT0/1/2 为2E8H-1(744-1)
+434	0x0033	0x7f3d	   434: 	LDI 	HOUR_CNT1,	0EH
+435	0x0034	0x793e	   435: 	LDI	HOUR_CNT2,	02H
+436			   436: 	
+437	0x0035	0x6936	   437: 	ORIM 	F_TIME,		0010B 	;设置 "1月到" 标志
+438			   438: 	
+439			   439: J_YEAR:	
+440	0x0036	0x58bf	   440: 	SBIM 	MONTH_CNT,	01H	;MONTH_CNT 每月减1
+441	0x0037	0x983a	   441: 	BC 	TIMER0_ISP_END		;MONTH_CNT 减1产生借位时，则表示1年计时已到
+442			   442: 	
+443	0x0038	0x7dbf	   443: 	LDI 	MONTH_CNT,	0BH 	;重置MONTH_CNT 为0CH-1(12-1)
+444			   444: 	
+445	0x0039	0x6a36	   445: 	ORIM 	F_TIME,		0100B 	;设置 "1年到" 标志
+446			   
+447			   447: TIMER0_ISP_END:
+448	0x003a	0x7e00	   448: 	LDI 	IE,		1100B 	;打开ADC,Timer0 中断
+449	0x003b	0x3830	   449: 	LDA 	AC_BAK,		00H 	;恢复AC 值
+450	0x003c	0xd400	   450: 	RTNI
+451			   
+452			   
+453			   453: ;*****************************************************
+454			   454: ;ADC 中断服务程序
+455			   455: ;*****************************************************	
+456			   456: ADC_ISP:
+457	0x003d	0x3c30	   457: 	STA 	AC_BAK,		00H 	;备份AC 值
+458	0x003e	0x7381	   458: 	ANDIM 	IRQ,		0111B 	;清ADC 中断请求标志
+459			   
+460	0x003f	0x3817	   460: 	LDA	ADCCHN			
+461	0x0040	0x9048	   461: 	BAZ	CHN0_VOL_1		;此次为通道0 转换结果
+462	0x0041	0x5097	   462: 	SBI	ADCCHN,		01H
+463	0x0042	0x9072	   463: 	BAZ	CHN1_VOL_1		;此次为通道1 转换结果	
+464	0x0043	0x5317	   464: 	SBI	ADCCHN,		06H
+465	0x0044	0x909c	   465: 	BAZ	CHN6_VOL_1		;此次为通道6 转换结果
+466	0x0045	0x5397	   466: 	SBI	ADCCHN,		07H
+467	0x0046	0x90c6	   467: 	BAZ	CHN7_VOL_1		;此次为通道7 转换结果
+468	0x0047	0xe102	   468: 	JMP	ADC_ISP_END		;正常情况下不应执行此语句
+469			   
+470			   470: ;----------------------------------------------------------------	
+471			   
+472			   472: ;转存通道0 转换结果
+473			   473: ;----------------------------------------------------------------
+474			   474: CHN0_VOL_1:
+475	0x0048	0x788e	   475: 	LDI	TBR,		01H	;次数加一
+476	0x0049	0x0c8f	   476: 	ADDM	DET0_CT,	01H	
+477			   
+478	0x004a	0x7a0e	   478: 	LDI	TBR,		04H	;DET0_CT - 4 -> A
+479	0x004b	0x188f	   479: 	SUB	DET0_CT,	01H
+480	0x004c	0x9068	   480: 	BAZ 	CHN0_VOL_14		;第4个转换结果
+481			   
+482	0x004d	0x798e	   482: 	LDI	TBR,		03H	;DET0_CT - 3 -> A
+483	0x004e	0x188f	   483: 	SUB	DET0_CT,	01H
+484	0x004f	0x9061	   484: 	BAZ 	CHN0_VOL_13		;第3个转换结果
+485			   
+486	0x0050	0x790e	   486: 	LDI	TBR,		02H	;DET0_CT - 2 -> A
+487	0x0051	0x188f	   487: 	SUB	DET0_CT,	01H
+488	0x0052	0x905a	   488: 	BAZ 	CHN0_VOL_12		;第2个转换结果
+489			   
+490			   490: CHN0_VOL_11:
+491	0x0053	0x382d	   491: 	LDA 	AD_RET0,	00H 	;保存第一次A/D 转换结果
+492	0x0054	0x3c80	   492: 	STA 	CHN0_RET0_BAK0,	01H
+493	0x0055	0x382e	   493: 	LDA 	AD_RET1,	00H
+494	0x0056	0x3c81	   494: 	STA 	CHN0_RET1_BAK0,	01H
+495	0x0057	0x382f	   495: 	LDA 	AD_RET2,	00H
+496	0x0058	0x3c82	   496: 	STA 	CHN0_RET2_BAK0,	01H
+497	0x0059	0xe0f0	   497: 	JMP 	NEXT_CHN	
+498			   
+499			   499: CHN0_VOL_12:
+500	0x005a	0x382d	   500: 	LDA 	AD_RET0,	00H 	;保存第二次A/D 转换结果
+501	0x005b	0x3c83	   501: 	STA 	CHN0_RET0_BAK1,	01H
+502	0x005c	0x382e	   502: 	LDA 	AD_RET1,	00H
+503	0x005d	0x3c84	   503: 	STA 	CHN0_RET1_BAK1,	01H
+504	0x005e	0x382f	   504: 	LDA 	AD_RET2,	00H
+505	0x005f	0x3c85	   505: 	STA 	CHN0_RET2_BAK1,	01H
+506	0x0060	0xe0f0	   506: 	JMP 	NEXT_CHN
+507			   507: 	
+508			   508: CHN0_VOL_13:
+509	0x0061	0x382d	   509: 	LDA 	AD_RET0,	00H 	;保存第三次A/D 转换结果
+510	0x0062	0x3c86	   510: 	STA 	CHN0_RET0_BAK2,	01H
+511	0x0063	0x382e	   511: 	LDA 	AD_RET1,	00H
+512	0x0064	0x3c87	   512: 	STA 	CHN0_RET1_BAK2,	01H
+513	0x0065	0x382f	   513: 	LDA 	AD_RET2,	00H
+514	0x0066	0x3c88	   514: 	STA 	CHN0_RET2_BAK2,	01H
+515	0x0067	0xe0f0	   515: 	JMP 	NEXT_CHN	
+516			   516: 	
+517			   517: CHN0_VOL_14:
+518	0x0068	0x382d	   518: 	LDA 	AD_RET0,	00H 	;保存第四次A/D 转换结果
+519	0x0069	0x3c89	   519: 	STA 	CHN0_RET0_BAK3,	01H
+520	0x006a	0x382e	   520: 	LDA 	AD_RET1,	00H
+521	0x006b	0x3c8a	   521: 	STA 	CHN0_RET1_BAK3,	01H
+522	0x006c	0x382f	   522: 	LDA 	AD_RET2,	00H
+523	0x006d	0x3c8b	   523: 	STA 	CHN0_RET2_BAK3,	01H
+524			   
+525	0x006e	0x780e	   525: 	LDI	TBR,		00H	;DET0_CT 清0
+526	0x006f	0x3c8f	   526: 	STA	DET0_CT,	01H
+527			   527: 	
+528	0x0070	0xc385	   528: 	CALL	CAL_CHN0_ADCDATA
+529			   529: 	
+530	0x0071	0xe0f0	   530: 	JMP 	NEXT_CHN	
+531			   531: ;----------------------------------------------------------------	
+532			   
+533			   533: ;转存通道1 转换结果
+534			   534: ;----------------------------------------------------------------
+535			   535: CHN1_VOL_1:
+536	0x0072	0x788e	   536: 	LDI	TBR,		01H	;次数加一
+537	0x0073	0x0c9f	   537: 	ADDM	DET1_CT,	01H	
+538			   
+539	0x0074	0x7a0e	   539: 	LDI	TBR,		04H	;DET1_CT - 4 -> A
+540	0x0075	0x189f	   540: 	SUB	DET1_CT,	01H
+541	0x0076	0x9092	   541: 	BAZ 	CHN1_VOL_14		;第4个转换结果
+542			   
+543	0x0077	0x798e	   543: 	LDI	TBR,		03H	;DET1_CT - 3 -> A
+544	0x0078	0x189f	   544: 	SUB	DET1_CT,	01H
+545	0x0079	0x908b	   545: 	BAZ 	CHN1_VOL_13		;第3个转换结果
+546			   
+547	0x007a	0x790e	   547: 	LDI	TBR,		02H	;DET1_CT - 2 -> A
+548	0x007b	0x189f	   548: 	SUB	DET1_CT,	01H
+549	0x007c	0x9084	   549: 	BAZ 	CHN1_VOL_12		;第2个转换结果
+550			   
+551			   551: CHN1_VOL_11:
+552	0x007d	0x382d	   552: 	LDA 	AD_RET0,	00H 	;保存第一次A/D 转换结果
+553	0x007e	0x3c90	   553: 	STA 	CHN1_RET0_BAK0,	01H
+554	0x007f	0x382e	   554: 	LDA 	AD_RET1,	00H
+555	0x0080	0x3c91	   555: 	STA 	CHN1_RET1_BAK0,	01H
+556	0x0081	0x382f	   556: 	LDA 	AD_RET2,	00H
+557	0x0082	0x3c92	   557: 	STA 	CHN1_RET2_BAK0,	01H
+558	0x0083	0xe0f0	   558: 	JMP 	NEXT_CHN	
+559			   
+560			   560: CHN1_VOL_12:
+561	0x0084	0x382d	   561: 	LDA 	AD_RET0,	00H 	;保存第二次A/D 转换结果
+562	0x0085	0x3c93	   562: 	STA 	CHN1_RET0_BAK1,	01H
+563	0x0086	0x382e	   563: 	LDA 	AD_RET1,	00H
+564	0x0087	0x3c94	   564: 	STA 	CHN1_RET1_BAK1,	01H
+565	0x0088	0x382f	   565: 	LDA 	AD_RET2,		
+566	0x0089	0x3c95	   566: 	STA 	CHN1_RET2_BAK1,	01H
+567	0x008a	0xe0f0	   567: 	JMP 	NEXT_CHN
+568			   
+569			   569: CHN1_VOL_13:
+570	0x008b	0x382d	   570: 	LDA 	AD_RET0,	00H 	;保存第三次A/D 转换结果
+571	0x008c	0x3c96	   571: 	STA 	CHN1_RET0_BAK2,	01H
+572	0x008d	0x382e	   572: 	LDA 	AD_RET1,	00H
+573	0x008e	0x3c97	   573: 	STA 	CHN1_RET1_BAK2,	01H
+574	0x008f	0x382f	   574: 	LDA 	AD_RET2,	00H
+575	0x0090	0x3c98	   575: 	STA 	CHN1_RET2_BAK2,	01H
+576	0x0091	0xe0f0	   576: 	JMP 	NEXT_CHN	
+577			   
+578			   578: CHN1_VOL_14:
+579	0x0092	0x382d	   579: 	LDA 	AD_RET0,	00H 	;保存第四次A/D 转换结果
+580	0x0093	0x3c99	   580: 	STA 	CHN1_RET0_BAK3,	01H
+581	0x0094	0x382e	   581: 	LDA 	AD_RET1,	00H
+582	0x0095	0x3c9a	   582: 	STA 	CHN1_RET1_BAK3,	01H
+583	0x0096	0x382f	   583: 	LDA 	AD_RET2,	00H
+584	0x0097	0x3c9b	   584: 	STA 	CHN1_RET2_BAK3,	01H
+585			   
+586	0x0098	0x780e	   586: 	LDI	TBR,		00H	;DET1_CT 清0
+587	0x0099	0x3c9f	   587: 	STA	DET1_CT,	01H
+588			   588: 	
+589	0x009a	0xc419	   589: 	CALL	CAL_CHN1_ADCDATA
+590			   590: 	
+591	0x009b	0xe0f0	   591: 	JMP 	NEXT_CHN	
+592			   592: ;----------------------------------------------------------------	
+593			   
+594			   594: ;转存通道6 转换结果
+595			   595: ;----------------------------------------------------------------
+596			   596: CHN6_VOL_1:
+597	0x009c	0x788e	   597: 	LDI	TBR,		01H	;次数加一
+598	0x009d	0x0caf	   598: 	ADDM	DET6_CT,	01H	
+599			   
+600	0x009e	0x7a0e	   600: 	LDI	TBR,		04H	;DET6_CT - 4 -> A
+601	0x009f	0x18af	   601: 	SUB	DET6_CT,	01H
+602	0x00a0	0x90bc	   602: 	BAZ 	CHN6_VOL_14		;第4个转换结果
+603			   
+604	0x00a1	0x798e	   604: 	LDI	TBR,		03H	;DET6_CT - 3 -> A
+605	0x00a2	0x18af	   605: 	SUB	DET6_CT,	01H
+606	0x00a3	0x90b5	   606: 	BAZ 	CHN6_VOL_13		;第3个转换结果
+607			   
+608	0x00a4	0x790e	   608: 	LDI	TBR,		02H	;DET6_CT - 2 -> A
+609	0x00a5	0x18af	   609: 	SUB	DET6_CT,	01H
+610	0x00a6	0x90ae	   610: 	BAZ 	CHN6_VOL_12		;第2个转换结果
+611			   
+612			   612: CHN6_VOL_11:
+613	0x00a7	0x382d	   613: 	LDA 	AD_RET0,	00H 	;保存第一次A/D 转换结果
+614	0x00a8	0x3ca0	   614: 	STA 	CHN6_RET0_BAK0,	01H
+615	0x00a9	0x382e	   615: 	LDA 	AD_RET1,	00H
+616	0x00aa	0x3ca1	   616: 	STA 	CHN6_RET1_BAK0,	01H
+617	0x00ab	0x382f	   617: 	LDA 	AD_RET2,	00H
+618	0x00ac	0x3ca2	   618: 	STA 	CHN6_RET2_BAK0,	01H
+619	0x00ad	0xe0f0	   619: 	JMP 	NEXT_CHN	
+620			   
+621			   621: CHN6_VOL_12:
+622	0x00ae	0x382d	   622: 	LDA 	AD_RET0,	00H 	;保存第二次A/D 转换结果
+623	0x00af	0x3ca3	   623: 	STA 	CHN6_RET0_BAK1,	01H
+624	0x00b0	0x382e	   624: 	LDA 	AD_RET1,	00H
+625	0x00b1	0x3ca4	   625: 	STA 	CHN6_RET1_BAK1,	01H
+626	0x00b2	0x382f	   626: 	LDA 	AD_RET2,	00H
+627	0x00b3	0x3ca5	   627: 	STA 	CHN6_RET2_BAK1,	01H
+628	0x00b4	0xe0f0	   628: 	JMP 	NEXT_CHN
+629			   629: 	
+630			   630: CHN6_VOL_13:
+631	0x00b5	0x382d	   631: 	LDA 	AD_RET0,	00H 	;保存第三次A/D 转换结果
+632	0x00b6	0x3ca6	   632: 	STA 	CHN6_RET0_BAK2,	01H
+633	0x00b7	0x382e	   633: 	LDA 	AD_RET1,	00H
+634	0x00b8	0x3ca7	   634: 	STA 	CHN6_RET1_BAK2,	01H
+635	0x00b9	0x382f	   635: 	LDA 	AD_RET2,	00H
+636	0x00ba	0x3ca8	   636: 	STA 	CHN6_RET2_BAK2,	01H
+637	0x00bb	0xe0f0	   637: 	JMP 	NEXT_CHN	
+638			   638: 	
+639			   639: CHN6_VOL_14:
+640	0x00bc	0x382d	   640: 	LDA 	AD_RET0,	00H 	;保存第四次A/D 转换结果
+641	0x00bd	0x3ca9	   641: 	STA 	CHN6_RET0_BAK3,	01H
+642	0x00be	0x382e	   642: 	LDA 	AD_RET1,	00H
+643	0x00bf	0x3caa	   643: 	STA 	CHN6_RET1_BAK3,	01H
+644	0x00c0	0x382f	   644: 	LDA 	AD_RET2,	00H
+645	0x00c1	0x3cab	   645: 	STA 	CHN6_RET2_BAK3,	01H
+646			   
+647	0x00c2	0x780e	   647: 	LDI	TBR,		00H	;DET6_CT 清0
+648	0x00c3	0x3caf	   648: 	STA	DET6_CT,	01H
+649			   649: 	
+650	0x00c4	0xc4ad	   650: 	CALL	CAL_CHN6_ADCDATA
+651			   651: 	
+652	0x00c5	0xe0f0	   652: 	JMP 	NEXT_CHN	
+653			   653: ;----------------------------------------------------------------	
+654			   
+655			   655: ;转存通道7 转换结果
+656			   656: ;----------------------------------------------------------------
+657			   657: CHN7_VOL_1:
+658	0x00c6	0x788e	   658: 	LDI	TBR,		01H	;次数加一
+659	0x00c7	0x0cbf	   659: 	ADDM	DET7_CT,	01H	
+660			   
+661	0x00c8	0x7a0e	   661: 	LDI	TBR,		04H	;DET7_CT - 4 -> A
+662	0x00c9	0x18bf	   662: 	SUB	DET7_CT,	01H
+663	0x00ca	0x90e6	   663: 	BAZ 	CHN7_VOL_14		;第4个转换结果
+664			   
+665	0x00cb	0x798e	   665: 	LDI	TBR,		03H	;DET7_CT - 3 -> A
+666	0x00cc	0x18bf	   666: 	SUB	DET7_CT,	01H
+667	0x00cd	0x90df	   667: 	BAZ 	CHN7_VOL_13		;第3个转换结果
+668			   
+669	0x00ce	0x790e	   669: 	LDI	TBR,		02H	;DET7_CT - 2 -> A
+670	0x00cf	0x18bf	   670: 	SUB	DET7_CT,	01H
+671	0x00d0	0x90d8	   671: 	BAZ 	CHN7_VOL_12		;第2个转换结果
+672			   
+673			   673: CHN7_VOL_11:
+674	0x00d1	0x382d	   674: 	LDA 	AD_RET0,	00H 	;保存第一次A/D 转换结果
+675	0x00d2	0x3cb0	   675: 	STA 	CHN7_RET0_BAK0,	01H
+676	0x00d3	0x382e	   676: 	LDA 	AD_RET1,	00H
+677	0x00d4	0x3cb1	   677: 	STA 	CHN7_RET1_BAK0,	01H
+678	0x00d5	0x382f	   678: 	LDA 	AD_RET2,	00H
+679	0x00d6	0x3cb2	   679: 	STA 	CHN7_RET2_BAK0,	01H
+680	0x00d7	0xe0f0	   680: 	JMP 	NEXT_CHN	
+681			   
+682			   682: CHN7_VOL_12:
+683	0x00d8	0x382d	   683: 	LDA 	AD_RET0,	00H 	;保存第二次A/D 转换结果
+684	0x00d9	0x3cb3	   684: 	STA 	CHN7_RET0_BAK1,	01H
+685	0x00da	0x382e	   685: 	LDA 	AD_RET1,	00H
+686	0x00db	0x3cb4	   686: 	STA 	CHN7_RET1_BAK1,	01H
+687	0x00dc	0x382f	   687: 	LDA 	AD_RET2,	00H
+688	0x00dd	0x3cb5	   688: 	STA 	CHN7_RET2_BAK1,	01H
+689	0x00de	0xe0f0	   689: 	JMP 	NEXT_CHN
+690			   690: 	
+691			   691: CHN7_VOL_13:
+692	0x00df	0x382d	   692: 	LDA 	AD_RET0,	00H 	;保存第三次A/D 转换结果
+693	0x00e0	0x3cb6	   693: 	STA 	CHN7_RET0_BAK2,	01H
+694	0x00e1	0x382e	   694: 	LDA 	AD_RET1,	00H
+695	0x00e2	0x3cb7	   695: 	STA 	CHN7_RET1_BAK2,	01H
+696	0x00e3	0x382f	   696: 	LDA 	AD_RET2,	00H
+697	0x00e4	0x3cb8	   697: 	STA 	CHN7_RET2_BAK2,	01H
+698	0x00e5	0xe0f0	   698: 	JMP 	NEXT_CHN	
+699			   699: 	
+700			   700: CHN7_VOL_14:
+701	0x00e6	0x382d	   701: 	LDA 	AD_RET0,	00H 	;保存第四次A/D 转换结果
+702	0x00e7	0x3cb9	   702: 	STA 	CHN7_RET0_BAK3,	01H
+703	0x00e8	0x382e	   703: 	LDA 	AD_RET1,	00H
+704	0x00e9	0x3cba	   704: 	STA 	CHN7_RET1_BAK3,	01H
+705	0x00ea	0x382f	   705: 	LDA 	AD_RET2,	00H
+706	0x00eb	0x3cbb	   706: 	STA 	CHN7_RET2_BAK3,	01H
+707			   
+708	0x00ec	0x780e	   708: 	LDI	TBR,		00H	;DET7_CT 清0
+709	0x00ed	0x3cbf	   709: 	STA	DET7_CT,	01H
+710			   710: 	
+711	0x00ee	0xc541	   711: 	CALL	CAL_CHN7_ADCDATA
+712			   712: 	
+713	0x00ef	0xe0f0	   713: 	JMP 	NEXT_CHN	
+714			   714: ;----------------------------------------------------------------
+715			   715: 	
+716			   716: ;----------------------------------------------------------------	
+717			   717: NEXT_CHN:
+718	0x00f0	0x3817	   718: 	LDA	ADCCHN
+719	0x00f1	0x90fb	   719: 	BAZ	NEXT_CHN1
+720	0x00f2	0x5097	   720: 	SBI	ADCCHN,		01H
+721	0x00f3	0x90fd	   721: 	BAZ	NEXT_CHN6
+722	0x00f4	0x5317	   722: 	SBI	ADCCHN,		06H
+723	0x00f5	0x90ff	   723: 	BAZ	NEXT_CHN7
+724	0x00f6	0x5397	   724: 	SBI	ADCCHN,		07H
+725	0x00f7	0x90f9	   725: 	BAZ	NEXT_CHN0
+726			   726: 	
+727	0x00f8	0xe102	   727: 	JMP 	ADC_ISP_END		;不可能执行这一句
+728			   
+729			   729: NEXT_CHN0:
+730	0x00f9	0x7817	   730: 	LDI	ADCCHN,		00H	;设定为CHN0
+731	0x00fa	0xe102	   731: 	JMP 	ADC_ISP_END
+732			   
+733			   733: NEXT_CHN1:
+734	0x00fb	0x7897	   734: 	LDI	ADCCHN,		01H	;设定为CHN1
+735	0x00fc	0xe102	   735: 	JMP 	ADC_ISP_END
+736			   736: 	
+737			   737: NEXT_CHN6:
+738	0x00fd	0x7b17	   738: 	LDI 	ADCCHN,		06H 	;设定为CHN6
+739	0x00fe	0xe102	   739: 	JMP	ADC_ISP_END
+740			   
+741			   741: NEXT_CHN7:
+742	0x00ff	0x3842	   742: 	LDA	FLAG_TYPE
+743	0x0100	0xa0f9	   743: 	BA0	NEXT_CHN0		;若FLAG_TYPE的bit0=1，则表示已完成灯具类型选择，此时不再需要对AN7进行采样。
+744			   744: 	
+745	0x0101	0x7b97	   745: 	LDI	ADCCHN,		07H	;设定为CHN7
+746			   746: ;----------------------------------------------------------------
+747			   
+748			   
+749			   749: ADC_ISP_END:
+750	0x0102	0x6c15	   750: 	ORIM 	ADCCFG,		1000B 	;启动A/D 转换
+751			   
+752	0x0103	0x7e00	   752: 	LDI 	IE,		1100B 	;打开ADC,Timer0 中断
+753	0x0104	0x3830	   753: 	LDA 	AC_BAK,		00H 	;取出AC 值
+754	0x0105	0xd400	   754: 	RTNI
+755			   
+756			   
+757			   757: ;*****************************************************
+758			   758: ; 主程序
+759			   759: ;*****************************************************
+760			   760: RESET:
+761	0x0106	0xffff	   761: 	NOP	
+762	0x0107	0x7800	   762: 	LDI 	IE,		0000B	;关闭所有中断
+763	0x0108	0xffff	   763:  	NOP
+764			   
+765	0x0109	0xc115	   765: 	CALL	RESET_USER_DATA		;清除用户寄存器
+766	0x010a	0xc124	   766: 	CALL	REGISTER_INITIAL	;初始化系统寄存器与用户数据寄存器
+767			   
+768	0x010b	0xc170	   768: 	CALL	PRE_START_PWR_CHK	;检查主电源是否正常，如异常则一直等待，直至恢复
+769	0x010c	0xc17c	   769: 	CALL	PRE_START_TYPE_CHK	;判断灯具的电池类型与光源类型
+770			   770: 	
+771	0x010d	0xc196	   771: 	CALL	CHARGE_BAT_ENABLE	;上电后，即开始对电池进行充电
+772			   
+773			   773: MAIN_LOOP:
+774			   774: 	;CALL	CHARGE_BAT_CTRL		;[充电控制]  根据主电源状态、待充电时长、电池是否充满标志位等进行电池充电控制
+775			   775: 	;CALL	EMERGENCY_CTRL		;[放电控制]  主电源停电后的应急放电控制，退出应急状态时，计算此次应急放电时长
+776			   776: 	
+777	0x010e	0xc2a9	   777: 	CALL	KEY_PROCESS		;[按键扫描]  按键扫描
+778	0x010f	0xc2e3	   778: 	CALL	SELF_CHK_STATE		;[自检状态]  根据系统运行时长与按键时长，置"停电"，"月检"，"年检"标志位
+779	0x0110	0xc30f	   779: 	CALL	SELF_CHK_PROCESS	;[系统自检]  根据自检标志位，进行自检
+780			   
+781	0x0111	0xc243	   781: 	CALL	BAT_STATE_CHK		;[电池状态]  检测电池状态，并置相应标志位
+782	0x0112	0xc26a	   782: 	CALL	LIGHT_STATE_CHK		;[光源状态]  光源状态检测，并置相应标志位
+783	0x0113	0xc274	   783: 	CALL	TIPS_PROCESS		;[声光提示]  处理LED与蜂鸣器
+784			   
+785	0x0114	0xe10e	   785: 	JMP	MAIN_LOOP
+786			   
+787			   787: 	
+788			   788: ;*****************************************************
+789			   789: ;清用户寄存器($030 ~ $0EF)
+790			   790: ;*****************************************************
+791			   791: RESET_USER_DATA:
+792			   
+793			   793: POWER_RESET:
+794	0x0115	0x7810	   794: 	LDI 	DPL,		00H
+795	0x0116	0x7991	   795: 	LDI 	DPM,		03H
+796	0x0117	0x7812	   796: 	LDI 	DPH,		00H	;从$30 开始
+797			   
+798			   798: POWER_RESET_1:
+799	0x0118	0x780f	   799: 	LDI 	INX,		00H	;向DPH,DPM,DPL组成的地址处写0
+800	0x0119	0x4890	   800: 	ADIM 	DPL,		01H
+801	0x011a	0x780e	   801: 	LDI 	TBR,		00H	;将累加器A 清0
+802	0x011b	0x0411	   802: 	ADCM 	DPM,		00H
+803	0x011c	0xb91e	   803: 	BA3 	POWER_RESET_2
+804	0x011d	0xe11f	   804: 	JMP 	POWER_RESET_3
+805			   
+806			   806: POWER_RESET_2:
+807	0x011e	0x4892	   807: 	ADIM 	DPH,		01H
+808			   
+809			   809: POWER_RESET_3:
+810	0x011f	0x5092	   810: 	SBI 	DPH,		01H	;到$EF 结束，即在地址001 111 000B时停止
+811	0x0120	0x8118	   811: 	BNZ 	POWER_RESET_1
+812	0x0121	0x5391	   812: 	SBI 	DPM,		07H
+813	0x0122	0x8118	   813: 	BNZ 	POWER_RESET_1
+814			   
+815			   815: RESET_USER_DATA_END:
+816	0x0123	0xd400	   816: 	RTNI
+817			   
+818			   
+819			   819: ;*****************************************************
+820			   820: ;初始化系统寄存器
+821			   821: ;*****************************************************
+822			   822: REGISTER_INITIAL:
+823			   
+824			   824: 	;TIMER0 初始化
+825			   825: 	;
+826			   826: 	;  fosc=4M, fsys=4M/4=1M
+827			   827: 	;
+828			   828: 	;  fsys=1M                 31250Hz                   125Hz
+829			   829: 	;           -------------            -------------
+830			   830: 	;  -------->| Prescaler |----------->|  Counter  |----------->
+831			   831: 	;           -------------            -------------
+832			   832: 	;               (32)                     (250)
+833			   833: 	
+834	0x0124	0x7982	   834: 	LDI 	TM0,		03H 	;设置TIMER0 预分频为/32
+835	0x0125	0x7b04	   835: 	LDI 	TL0,		06H
+836	0x0126	0x7805	   836: 	LDI 	TH0,		00H 	;设置中断时间为8ms
+837			   
+838	0x0127	0x7a7a	   838: 	LDI	CNT0_168MS,	04H	;定时168ms
+839	0x0128	0x78fb	   839: 	LDI	CNT1_168MS,	01H	;
+840			   
+841	0x0129	0x7eb7	   841: 	LDI 	CNT0_8MS,	0DH 	;定时1s
+842	0x012a	0x7bb8	   842: 	LDI 	CNT1_8MS,	07H 	;定时1s
+843			   843: 	
+844	0x012b	0x7fb9	   844: 	LDI	SEC_CNT0,	0FH	;SEC_CNT0/1/2 初始化为E10H - 1，即3600 -1
+845	0x012c	0x783a	   845: 	LDI	SEC_CNT1,	00H
+846	0x012d	0x7f3b	   846: 	LDI	SEC_CNT2,	0EH
+847			   
+848	0x012e	0x7bbc	   848: 	LDI	HOUR_CNT0,	07H	;HOUR_CNT0/1/2 初始化为2E8H - 1，即744 - 1
+849	0x012f	0x7f3d	   849: 	LDI	HOUR_CNT1,	0EH
+850	0x0130	0x793e	   850: 	LDI	HOUR_CNT2,	02H
+851			   
+852	0x0131	0x7dbf	   852: 	LDI	MONTH_CNT,	0BH	;MONTH_CNT 初始化为12 -1 个月
+853			   853: 		
+854			   
+855			   855: 	;I/O 口初始化
+856	0x0132	0x7808	   856: 	LDI 	PORTA,		00H
+857	0x0133	0x7818	   857: 	LDI 	PACR,		00H 	;设置PortA 作为输入口
+858			   858: 	
+859	0x0134	0x7809	   859: 	LDI 	PORTB,		00H
+860	0x0135	0x7819	   860: 	LDI 	PBCR,		00H 	;设置PortB 作为输入口
+861			   
+862	0x0136	0x780a	   862: 	LDI	PORTC,		00H
+863	0x0137	0x7f9a	   863: 	LDI	PCCR,		0FH	;设置PortC.0/PortC.1/PortC.2/PortC.3 作为输出
+864			   864: 	
+865	0x0138	0x7f1b	   865: 	LDI 	PDCR,		1110B 	;设置PD.0为输入，PD.3为输出
+866	0x0139	0x788e	   866: 	LDI	TBR,		0001B	;打开PD.0 内部上拉电阻
+867	0x013a	0x3f8b	   867: 	STA	PPDCR
+868			   
+869	0x013b	0x780c	   869: 	LDI 	PORTE,		00H
+870	0x013c	0x7f9c	   870: 	LDI 	PECR,		0FH 	;设置PortE 作为输出口
+871			   
+872			   872: 	;ADC初始化
+873			   873: 	;tosc = 1/4M = 0.25us, tAD = 8tosc = 2us, 一次A/D 转换时间 = 204tAD = 408 us.
+874	0x013d	0x7818	   874: 	LDI 	PACR,		0000B 	;设置PortA0/1 作为输入口
+875	0x013e	0x7819	   875: 	LDI 	PBCR,		0000B 	;设置PortB2/3 作为输入口
+876	0x013f	0x7894	   876: 	LDI 	ADCCTL,		0001B 	;选择内部参考电压VDD，使能ADC
+877	0x0140	0x7a15	   877: 	LDI 	ADCCFG,		0100B 	;A/D 时钟tAD=8tOSC, A/D 转换时间= 204tAD
+878	0x0141	0x7e16	   878: 	LDI	ADCPORT,	1100B	;使用AN0 ~ AN7
+879	0x0142	0x7817	   879: 	LDI	ADCCHN,		00H	;选择AN0
+880	0x0143	0x6c15	   880: 	ORIM 	ADCCFG,		1000B 	;启动A/D 转换
+881			   
+882			   882: 	;PWM初始化
+883	0x0144	0x7820	   883: 	LDI	PWMC0,		0000B	;PWM0 Clock = tosc = 4M
+884	0x0145	0x7ea2	   884: 	LDI	PWMP00,		0DH	;周期为125个PWM0 Clock
+885	0x0146	0x7ba3	   885: 	LDI	PWMP01,		07H	
+886	0x0147	0x7824	   886: 	LDI	PWMD00,		00H	;无微调
+887	0x0148	0x7f25	   887: 	LDI	PWMD01,		0EH	;占空比为50%
+888	0x0149	0x79a6	   888: 	LDI	PWMD02,		03H	
+889			   
+890	0x014a	0x7821	   890: 	LDI	PWMC1,		0000B	;PWM0 Clock = tosc = 4M
+891	0x014b	0x7ea7	   891: 	LDI	PWMP10,		0DH	;周期为125个PWM0 Clock
+892	0x014c	0x7ba8	   892: 	LDI	PWMP11,		07H	
+893	0x014d	0x7829	   893: 	LDI	PWMD10,		00H	;无微调
+894	0x014e	0x7f2a	   894: 	LDI	PWMD11,		0EH	;占空比为50%
+895	0x014f	0x79ab	   895: 	LDI	PWMD12,		03H
+896			   
+897			   
+898			   898: 	;按键相关
+899	0x0150	0x7ef6	   899: 	LDI	CNT0_496MS,	0DH	;初始化496ms 计数器,496 = 8 * 62
+900	0x0151	0x79f6	   900: 	LDI	CNT0_496MS,	03H	;初始化496ms 计数器
+901	0x0152	0x78f8	   901: 	LDI	BTN_PRE_STA,	01H	;初始化上一次没有按键
+902			   
+903			   903: 	;状态相关
+904	0x0153	0x7831	   904: 	LDI	SYSTEM_STATE,	00H	;初始化为"主电"
+905			   
+906			   906: 	;门限值
+907	0x0154	0x7bc3	   907: 	LDI	CMP_MIN_PWR0,	07H	;最小上电电压(1.396V -> 0x8E)
+908	0x0155	0x7a44	   908: 	LDI	CMP_MIN_PWR1,	04H	
+909			   
+910	0x0156	0x7ecc	   910: 	LDI	CMP_SUPPLY0,	0DH	;小于此电压，则开启应急功能(1.115V -> 0x5B)
+911	0x0157	0x794d	   911: 	LDI	CMP_SUPPLY1,	02H
+912			   
+913	0x0158	0x7bfd	   913: 	LDI	CMP_RESUME0,	07H	;大于此电压，则由应急转入主电(1.396V -> 0x8E)
+914	0x0159	0x7a7e	   914: 	LDI	CMP_RESUME1,	04H
+915			   
+916	0x015a	0x78d2	   916: 入应急状态，则跳转
+917	0x015b	0x79d3	   917: 	LDI	CMP_EXIT_EMER1,	03H
+918			   
+919	0x015c	0x7fd4	   919: 	LDI	CMP_BAT_OPEN0,	0FH	;电池电压大于此电压时，视为电池充电回路开路(1.56V -> 0x9F)
+920	0x015d	0x7a55	   920: 	LDI	CMP_BAT_OPEN1,	04H
+921			   
+922	0x015e	0x7cd6	   922: 	LDI	CMP_BAT_FULL0,	09H	;检测到电池电压大于此数值时(1.44V -> 0x93)，视为电池已充满
+923	0x015f	0x7a57	   923: 	LDI	CMP_BAT_FULL1,	04H
+924			   
+925	0x0160	0x7ad8	   925: 	LDI	CMP_BAT_CHARGE0,05H	;检测到电池电压小于此数值时(1.35V -> 0x8A)，视为电池得开始充电了
+926	0x0161	0x7a59	   926: 	LDI	CMP_BAT_CHARGE1,04H
+927			   
+928	0x0162	0x7d59	   928: 	LDI	CMP_LIGHT0,	0AH	;供光源检测使用,AD转换结果小于此数值时(0.2V -> 0x14)，表示光源产生故障
+929	0x0163	0x785a	   929: 	LDI	CMP_LIGHT1,	00H
+930			   930: 	
+931	0x0164	0x7845	   931: 	LDI	CMP_TYPE00,	00H	;灯具类型门限0
+932	0x0165	0x7846	   932: 	LDI	CMP_TYPE01,	00H
+933			   
+934	0x0166	0x7847	   934: 	LDI	CMP_TYPE10,	00H	;灯具类型门限1
+935	0x0167	0x7848	   935: 	LDI	CMP_TYPE11,	00H
+936			   
+937	0x0168	0x7849	   937: 	LDI	CMP_TYPE20,	00H	;灯具类型门限2
+938	0x0169	0x784a	   938: 	LDI	CMP_TYPE21,	00H
+939			   
+940	0x016a	0x7fe3	   940: 	LDI	CNT0_CHARGE,	0FH	;还应充电多长时间，初始值为20小时，即20 * 60 =1200分钟(0x4B0)
+941	0x016b	0x7d64	   941: 	LDI	CNT1_CHARGE,	0AH
+942	0x016c	0x7a65	   942: 	LDI	CNT2_CHARGE,	04H
+943			   943: 	
+944			   
+945	0x016d	0x7801	   945: 	LDI 	IRQ,		00H
+946	0x016e	0x7e00	   946: 	LDI 	IE,		1100B 	;打开ADC,Timer0 中断
+947			   
+948			   
+949			   949: REGISTER_INITIAL_END:
+950	0x016f	0xd400	   950: 	RTNI
+951			   
+952			   
+953			   
+954			   954: ;*****************************************************
+955			   955: ;检查供电是否正常
+956			   956: ;*****************************************************
+957			   957: PRE_START_PWR_CHK:
+958			   
+959			   959: WAIT_AD_RESULT:
+960			   960: 	;一个通道采样4个数据，去掉最小与最大值，将余下的2个数据平均后得到最终结果。
+961			   961: 	;上述过程耗时约408us * 4 = 2ms
+962			   962: 	;根据以上推断，四个通道各得出一个最终结果需耗时 2ms * 4 = 8ms
+963			   
+964			   964: 	;保险起见，此处延时20ms
+965	0x0170	0xc37b	   965: 	CALL	DELAY_5MS
+966	0x0171	0xc37b	   966: 	CALL	DELAY_5MS
+967	0x0172	0xc37b	   967: 	CALL	DELAY_5MS
+968	0x0173	0xc37b	   968: 	CALL	DELAY_5MS
+969			   
+970			   970: WAIT_PWR_NML:	
+971	0x0174	0x6a41	   971: 	ORIM	FLAG_OCCUPIED,	0100B	;锁定通道6最终结果
+972			   
+973	0x0175	0x38ad	   973: 	LDA	CHN6_FINAL_RET1,01H
+974	0x0176	0x1843	   974: 	SUB	CMP_MIN_PWR0
+975	0x0177	0x38ae	   975: 	LDA	CHN6_FINAL_RET2,01H
+976	0x0178	0x1044	   976: 	SBC	CMP_MIN_PWR1
+977			   
+978	0x0179	0x75c1	   978: 	ANDIM	FLAG_OCCUPIED,	1011B	;释放对通道6最终结果的锁定
+979			   979: 	
+980	0x017a	0x9970	   980: 	BC	WAIT_AD_RESULT		;如果未达到最小上电电压，则一直等待电压升至最小上电电压之上。
+981			   
+982			   982: PRE_START_PWR_CHK_END:
+983	0x017b	0xd400	   983: 	RTNI
+984			   
+985			   
+986			   
+987			   987: ;***********************************************************
+988			   988: ; 检查灯具类型
+989			   989: ; 输入: CHN7_FINAL_RET1, CHN7_FINAL_RET2
+990			   990: ; 输出: LIGHT_TYPE
+991			   991: ;***********************************************************
+992			   992: PRE_START_TYPE_CHK:
+993			   
+994	0x017c	0x6c41	   994: 	ORIM	FLAG_OCCUPIED,	1000B	;锁定通道7最终结果
+995			   
+996	0x017d	0x38bd	   996: 	LDA	CHN7_FINAL_RET1,01H	;和门限0比较
+997	0x017e	0x1845	   997: 	SUB	CMP_TYPE00
+998	0x017f	0x38be	   998: 	LDA	CHN7_FINAL_RET2,01H
+999	0x0180	0x1046	   999: 	SBC	CMP_TYPE01
+1000	0x0181	0x898e	   1000: 	BNC	LI_ON			;
+1001			   
+1002	0x0182	0x38bd	   1002: 	LDA	CHN7_FINAL_RET1,01H	;和门限1比较
+1003	0x0183	0x1847	   1003: 	SUB	CMP_TYPE10
+1004	0x0184	0x38be	   1004: 	LDA	CHN7_FINAL_RET2,01H
+1005	0x0185	0x1048	   1005: 	SBC	CMP_TYPE11
+1006	0x0186	0x8990	   1006: 	BNC	LI_OFF			;
+1007			   
+1008	0x0187	0x38bd	   1008: 	LDA	CHN7_FINAL_RET1,01H	;和门限2比较
+1009	0x0188	0x1849	   1009: 	SUB	CMP_TYPE20
+1010	0x0189	0x38be	   1010: 	LDA	CHN7_FINAL_RET2,01H
+1011	0x018a	0x104a	   1011: 	SBC	CMP_TYPE21
+1012	0x018b	0x8992	   1012: 	BNC	NI_ON			;
+1013			   
+1014			   1014: NI_OFF:
+1015	0x018c	0x7c4b	   1015: 	LDI	LIGHT_TYPE,	1000B
+1016	0x018d	0xe193	   1016: 	JMP	PRE_START_TYPE_CHK_END
+1017			   1017: 	
+1018			   1018: LI_ON:
+1019	0x018e	0x78cb	   1019: 	LDI	LIGHT_TYPE,	0001B
+1020	0x018f	0xe193	   1020: 	JMP	PRE_START_TYPE_CHK_END
+1021			   1021: 	
+1022			   1022: LI_OFF:
+1023	0x0190	0x794b	   1023: 	LDI	LIGHT_TYPE,	0010B
+1024	0x0191	0xe193	   1024: 	JMP	PRE_START_TYPE_CHK_END
+1025			   1025: 	
+1026			   1026: NI_ON:
+1027	0x0192	0x7a4b	   1027: 	LDI	LIGHT_TYPE,	0100B
+1028			   1028: 	
+1029			   1029: PRE_START_TYPE_CHK_END:
+1030	0x0193	0x73c1	   1030: 	ANDIM	FLAG_OCCUPIED,	0111B	;释放对通道7最终结果的锁定
+1031	0x0194	0x68c2	   1031: 	ORIM	FLAG_TYPE,	0001B	;不再对通道7进行采样
+1032			   1032: 	
+1033	0x0195	0xd400	   1033: 	RTNI
+1034			   
+1035			   
+1036			   
+1037			   
+1038			   
+1039			   1039: ;***********************************************************
+1040			   1040: ; 通过PWM1输出高电平，对电池进行充电
+1041			   1041: ;***********************************************************
+1042			   1042: CHARGE_BAT_ENABLE:
+1043			   
+1044	0x0196	0x7821	   1044: 	LDI	PWMC1,		0000B	;PWM0 Clock = tosc = 4M
+1045	0x0197	0x7ea7	   1045: 	LDI	PWMP10,		0DH	;周期为125个PWM0 Clock
+1046	0x0198	0x7ba8	   1046: 	LDI	PWMP11,		07H	
+1047	0x0199	0x7829	   1047: 	LDI	PWMD10,		00H	;无微调
+1048	0x019a	0x7eaa	   1048: 	LDI	PWMD11,		0DH	;占空比为100%
+1049	0x019b	0x7bab	   1049: 	LDI	PWMD12,		07H
+1050	0x019c	0x68a1	   1050: 	ORIM	PWMC1,		0001B	;使能PWM1输出
+1051			   
+1052	0x019d	0x68b3	   1052: 	ORIM	ALREADY_ENTER,	0001B	;置已经开始充电标志位
+1053	0x019e	0x7fe3	   1053: 	LDI	CNT0_CHARGE,	0FH
+1054	0x019f	0x7d64	   1054: 	LDI	CNT1_CHARGE,	0AH
+1055	0x01a0	0x7a65	   1055: 	LDI	CNT2_CHARGE,	04H
+1056			   1056: 	
+1057			   1057: CHARGE_BAT_ENABLE_END:
+1058	0x01a1	0xd400	   1058: 	RTNI
+1059			   
+1060			   
+1061			   1061: ;***********************************************************
+1062			   1062: ; 对于锂电池，通过PWM1输出低电平，停止对电池充电
+1063			   1063: ; 对于镍镉电池，通过PWM1输出方波，对电池进行涓流充电
+1064			   1064: ;***********************************************************
+1065			   1065: CHARGE_BAT_DISABLE:
+1066	0x01a2	0x398e	   1066: 	LDA	TBR,		0011B
+1067	0x01a3	0x304b	   1067: 	AND	LIGHT_TYPE		;判断电池类型
+1068	0x01a4	0x81ad	   1068: 	BNZ	LI_BAT
+1069			   
+1070			   1070: NI_BAT:
+1071	0x01a5	0x7821	   1071: 	LDI	PWMC1,		0000B	;PWM0 Clock = 8 * tosc = 2us
+1072	0x01a6	0x7d27	   1072: 	LDI	PWMP10,		0AH	;周期为250个PWM0 Clock
+1073	0x01a7	0x7fa8	   1073: 	LDI	PWMP11,		0FH	
+1074	0x01a8	0x7829	   1074: 	LDI	PWMD10,		00H	;无微调
+1075	0x01a9	0x7f2a	   1075: 	LDI	PWMD11,		0EH	;占空比为1/4
+1076	0x01aa	0x79ab	   1076: 	LDI	PWMD12,		03H
+1077	0x01ab	0x68a1	   1077: 	ORIM	PWMC1,		0001B	;使能PWM1输出
+1078			   1078: 	
+1079	0x01ac	0xe1b4	   1079: 	JMP	CHARGE_BAT_DISABLE_END
+1080			   
+1081			   1081: LI_BAT:
+1082	0x01ad	0x7821	   1082: 	LDI	PWMC1,		0000B	;PWM0 Clock = tosc = 4M
+1083	0x01ae	0x7827	   1083: 	LDI	PWMP10,		00H	;周期为0个PWM0 Clock
+1084	0x01af	0x7828	   1084: 	LDI	PWMP11,		00H	
+1085	0x01b0	0x7829	   1085: 	LDI	PWMD10,		00H	;无微调
+1086	0x01b1	0x7eaa	   1086: 	LDI	PWMD11,		0DH	;占空比为100%
+1087	0x01b2	0x7bab	   1087: 	LDI	PWMD12,		07H
+1088	0x01b3	0x68a1	   1088: 	ORIM	PWMC1,		0001B	;使能PWM1输出
+1089			   
+1090			   1090: CHARGE_BAT_DISABLE_END:
+1091	0x01b4	0x7733	   1091: 	ANDIM	ALREADY_ENTER,	1110B	;清已经开始充电标志位
+1092	0x01b5	0xd400	   1092: 	RTNI
+1093			   
+1094			   
+1095			   1095: ;***********************************************************
+1096			   1096: ;电池充电控制
+1097			   1097: ;***********************************************************
+1098			   1098: CHARGE_BAT_CTRL:
+1099			   
+1100	0x01b6	0x6a41	   1100: 	ORIM	FLAG_OCCUPIED,	0100B	;锁定通道6最终结果
+1101			   
+1102	0x01b7	0x38ad	   1102: 	LDA	CHN6_FINAL_RET1,01H
+1103	0x01b8	0x184c	   1103: 	SUB	CMP_SUPPLY0
+1104	0x01b9	0x38ae	   1104: 	LDA	CHN6_FINAL_RET2,01H
+1105	0x01ba	0x104d	   1105: 	SBC	CMP_SUPPLY1
+1106			   
+1107	0x01bb	0x75c1	   1107: 	ANDIM	FLAG_OCCUPIED,	1011B	;释放对通道6最终结果的锁定
+1108			   
+1109	0x01bc	0x99d0	   1109: 	BC	SET_PWR_DOWN_BIT	;如果停电,则跳转
+1110			   
+1111	0x01bd	0x3833	   1111: 	LDA	ALREADY_ENTER		;如果主电源供电正常，则检查是否已经进入充电状态
+1112	0x01be	0xa1c2	   1112: 	BA0	CHARGE_DURATION		;如果已经进入充电状态
+1113			   
+1114	0x01bf	0x3858	   1114: 	LDA	BAT_STATE		
+1115	0x01c0	0xb196	   1115: 	BA2	CHARGE_BAT_ENABLE	;如果电池电压过低，则开始对电池充电
+1116			   
+1117	0x01c1	0xe1d1	   1117: 	JMP	CHARGE_BAT_CTRL_END	;不需要对电池充电
+1118			   1118: 	
+1119			   1119: CHARGE_DURATION:
+1120	0x01c2	0x4436	   1120: 	ADI	F_TIME,		1000B
+1121	0x01c3	0xb9cb	   1121: 	BA3	IS_BAT_FULL		;1分钟未到
+1122			   
+1123	0x01c4	0x73b6	   1123: 	ANDIM	F_TIME,		0111B	;清1分钟到标志位
+1124			   
+1125	0x01c5	0x58e3	   1125: 	SBIM	CNT0_CHARGE,	01H	;待充电时长减1分钟
+1126	0x01c6	0x780e	   1126: 	LDI	TBR,		00H
+1127	0x01c7	0x1464	   1127: 	SBCM	CNT1_CHARGE
+1128	0x01c8	0x780e	   1128: 	LDI	TBR,		00H
+1129	0x01c9	0x1465	   1129: 	SBCM	CNT2_CHARGE
+1130			   
+1131	0x01ca	0x89ce	   1131: 	BNC	STOP_CHARGE		;
+1132			   1132: 	
+1133			   1133: IS_BAT_FULL:
+1134	0x01cb	0x3858	   1134: 	LDA	BAT_STATE
+1135	0x01cc	0xa9ce	   1135: 	BA1	STOP_CHARGE		;电池已充满
+1136			   1136: 	
+1137	0x01cd	0xe1d1	   1137: 	JMP	CHARGE_BAT_CTRL_END
+1138			   1138: 	
+1139			   1139: STOP_CHARGE:
+1140	0x01ce	0xc1a2	   1140: 	CALL	CHARGE_BAT_DISABLE
+1141	0x01cf	0xe1d1	   1141: 	JMP	CHARGE_BAT_CTRL_END
+1142			   
+1143			   1143: SET_PWR_DOWN_BIT:
+1144	0x01d0	0x68b1	   1144: 	ORIM	SYSTEM_STATE,	0001B
+1145			   
+1146			   1146: CHARGE_BAT_CTRL_END:
+1147	0x01d1	0xd400	   1147: 	RTNI
+1148			   
+1149			   
+1150			   1150: ;***********************************************************
+1151			   1151: ;打开应急放电
+1152			   1152: ;通过PWM0输出频率为32KHZ，占空比为50%的方波，以此驱动应急电路
+1153			   1153: ;置停电标志位
+1154			   1154: ;置进入应急放电标志位
+1155			   1155: ;应急时长清零
+1156			   1156: ;***********************************************************
+1157			   1157: EMERGENCY_ENABLE:
+1158	0x01d2	0x68b1	   1158: 	ORIM	SYSTEM_STATE,	0001B	;置停电标志位
+1159	0x01d3	0x6933	   1159: 	ORIM	ALREADY_ENTER,	0010B	;置标志位，表明已打开应急放电功能
+1160			   1160: 	
+1161	0x01d4	0x784f	   1161: 	LDI	CNT0_EMERGENCY,	00H	;应急时长清零
+1162	0x01d5	0x7850	   1162: 	LDI	CNT1_EMERGENCY,	00H
+1163	0x01d6	0x7851	   1163: 	LDI	CNT2_EMERGENCY,	00H
+1164			   
+1165	0x01d7	0x7820	   1165: 	LDI	PWMC0,		0000B	;PWM0 Clock = tosc = 4M
+1166	0x01d8	0x7ea2	   1166: 	LDI	PWMP00,		0DH	;周期为125个PWM0 Clock
+1167	0x01d9	0x7ba3	   1167: 	LDI	PWMP01,		07H	
+1168	0x01da	0x7824	   1168: 	LDI	PWMD00,		00H	;无微调
+1169	0x01db	0x7f25	   1169: 	LDI	PWMD01,		0EH	;占空比为50%
+1170	0x01dc	0x79a6	   1170: 	LDI	PWMD02,		03H
+1171	0x01dd	0x68a0	   1171: 	ORIM	PWMC0,		0001B	;使能PWM0输出
+1172			   
+1173			   1173: EMERGENCY_ENABLE_END:
+1174	0x01de	0xd400	   1174: 	RTNI
+1175			   
+1176			   
+1177			   1177: ;***********************************************************
+1178			   1178: ;禁能PWM0，关闭应急功能
+1179			   1179: ;***********************************************************
+1180			   1180: EMERGENCY_DISABLE:
+1181	0x01df	0x7820	   1181: 	LDI	PWMC0,		0000B	;禁能PWM0
+1182			   
+1183			   1183: EMERGENCY_DISABLE_END:
+1184	0x01e0	0xd400	   1184: 	RTNI
+1185			   
+1186			   
+1187			   1187: ;***********************************************************
+1188			   1188: ; 发生了应急放电事件，重新计算待充电时长
+1189			   1189: ;***********************************************************
+1190			   1190: RE_CALC_TIME:
+1191	0x01e1	0x384e	   1191: 	LDA	DURATION_EMER
+1192	0x01e2	0xa1e5	   1192: 	BA0	BETWEEN_0_5
+1193	0x01e3	0xa9eb	   1193: 	BA1	BETWEEN_5_30
+1194	0x01e4	0xb1f1	   1194: 	BA2	OVER_30
+1195			   
+1196			   1196: BETWEEN_0_5:
+1197	0x01e5	0x4ae3	   1197: 	ADIM	CNT0_CHARGE,	05H	;将待充电时长增加5分钟
+1198	0x01e6	0x780e	   1198: 	LDI	TBR,		00H
+1199	0x01e7	0x0464	   1199: 	ADCM	CNT1_CHARGE
+1200	0x01e8	0x780e	   1200: 	LDI	TBR,		00H
+1201	0x01e9	0x0465	   1201: 	ADCM	CNT2_CHARGE
+1202			   
+1203	0x01ea	0xe1f6	   1203: 	JMP	ADJUST_TIME
+1204			   1204: 	
+1205			   1205: BETWEEN_5_30:
+1206	0x01eb	0x4c63	   1206: 	ADIM	CNT0_CHARGE,	08H	;将待充电时长增加10小时
+1207	0x01ec	0x7a8e	   1207: 	LDI	TBR,		05H
+1208	0x01ed	0x0464	   1208: 	ADCM	CNT1_CHARGE
+1209	0x01ee	0x790e	   1209: 	LDI	TBR,		02H
+1210	0x01ef	0x0465	   1210: 	ADCM	CNT2_CHARGE
+1211			   
+1212	0x01f0	0xe1f6	   1212: 	JMP	ADJUST_TIME
+1213			   1213: 	
+1214			   1214: OVER_30:				;即使20+20小时，也不会发生溢出
+1215	0x01f1	0x4863	   1215: 	ADIM	CNT0_CHARGE,	00H	;将待充电时长增加20小时
+1216	0x01f2	0x7d8e	   1216: 	LDI	TBR,		0BH
+1217	0x01f3	0x0464	   1217: 	ADCM	CNT1_CHARGE
+1218	0x01f4	0x7a0e	   1218: 	LDI	TBR,		04H
+1219	0x01f5	0x0465	   1219: 	ADCM	CNT2_CHARGE
+1220			   1220: 	
+1221			   1221: ADJUST_TIME:
+1222	0x01f6	0x1863	   1222: 	SUB	CNT0_CHARGE,	00H	;将待充电时长与20小时作比较
+1223	0x01f7	0x7d8e	   1223: 	LDI	TBR,		0BH
+1224	0x01f8	0x1064	   1224: 	SBC	CNT1_CHARGE
+1225	0x01f9	0x7a0e	   1225: 	LDI	TBR,		04H
+1226	0x01fa	0x1065	   1226: 	SBC	CNT2_CHARGE
+1227			   
+1228	0x01fb	0x89ff	   1228: 	BNC	RE_CALC_TIME_END	;待充电时长小于20小时
+1229			   
+1230	0x01fc	0x7863	   1230: 	LDI	CNT0_CHARGE,	00H	;将待充电时长设置为20小时
+1231	0x01fd	0x7de4	   1231: 	LDI	CNT1_CHARGE,	0BH
+1232	0x01fe	0x7a65	   1232: 	LDI	CNT2_CHARGE,	04H
+1233			   1233: 		
+1234			   1234: RE_CALC_TIME_END:
+1235	0x01ff	0xd400	   1235: 	RTNI
+1236			   
+1237			   
+1238			   1238: ;***********************************************************
+1239			   1239: ;应急放电控制
+1240			   1240: ;主电源停电后的应急放电控制。
+1241			   1241: ;何时开始应急放电:主电源AD引脚电压低于1.115V后
+1242			   1242: ;何时停止应急放电:主电源AD引脚电压高于1.396V后，或是电池耗尽(电池AD引脚电压低于0.96V)
+1243			   1243: ;停止应急放电时，得出应急放电时长
+1244			   1244: ;***********************************************************
+1245			   1245: EMERGENCY_CTRL:
+1246	0x0200	0x6a41	   1246: 	ORIM	FLAG_OCCUPIED,	0100B	;锁定通道6最终结果
+1247			   
+1248	0x0201	0x38ad	   1248: 	LDA	CHN6_FINAL_RET1,01H
+1249	0x0202	0x184c	   1249: 	SUB	CMP_SUPPLY0
+1250	0x0203	0x38ae	   1250: 	LDA	CHN6_FINAL_RET2,01H
+1251	0x0204	0x104d	   1251: 	SBC	CMP_SUPPLY1
+1252			   
+1253	0x0205	0x75c1	   1253: 	ANDIM	FLAG_OCCUPIED,	1011B	;释放对通道6最终结果的锁定
+1254			   
+1255			   
+1256	0x0206	0x8a0b	   1256: 	BNC	CHK_PWR_RESUME		;如果主电源引脚电压大于1.115V，则跳转
+1257			   
+1258	0x0207	0x3833	   1258: 	LDA	ALREADY_ENTER		;如果主电源引脚电压小于1.115V，则检查是否已经进入应急状态
+1259	0x0208	0xaa30	   1259: 	BA1	EMERGENCY_CNT		;如果已经进入应急状态，则跳转
+1260			   
+1261	0x0209	0xc1d2	   1261: 	CALL	EMERGENCY_ENABLE	;如果停电且还未进入应急状态,则打开应急
+1262	0x020a	0xe242	   1262: 	JMP	EMERGENCY_CTRL_END
+1263			   
+1264			   
+1265			   1265: CHK_PWR_RESUME:
+1266	0x020b	0x6a41	   1266: 	ORIM	FLAG_OCCUPIED,	0100B	;锁定通道6最终结果
+1267			   
+1268	0x020c	0x38ad	   1268: 	LDA	CHN6_FINAL_RET1,01H
+1269	0x020d	0x187d	   1269: 	SUB	CMP_RESUME0
+1270	0x020e	0x38ae	   1270: 	LDA	CHN6_FINAL_RET2,01H
+1271	0x020f	0x107e	   1271: 	SBC	CMP_RESUME1
+1272			   
+1273	0x0210	0x75c1	   1273: 	ANDIM	FLAG_OCCUPIED,	1011B	;释放对通道6最终结果的锁定
+1274			   
+1275	0x0211	0x9a15	   1275: 	BC	SMALL_THAN_1P396V	;如果1.115v < X < 1.396V
+1276			   
+1277	0x0212	0x3833	   1277: 	LDA	ALREADY_ENTER		;X > 1.396V
+1278	0x0213	0xaa18	   1278: 	BA1	STOP_EMERGENCY		;如果已经进入应急状态，则跳转
+1279	0x0214	0xe242	   1279: 	JMP	EMERGENCY_CTRL_END
+1280			   
+1281			   
+1282			   1282: SMALL_THAN_1P396V:
+1283	0x0215	0x3833	   1283: 	LDA		
+1284	0x0216	0xaa30	   1284: 	BA1	EMERGENCY_CNT		;如果已经进入应急状态，则跳转
+1285	0x0217	0xe242	   1285: 	JMP	EMERGENCY_CTRL_END
+1286			   
+1287			   
+1288			   1288: STOP_EMERGENCY:
+1289	0x0218	0x7731	   1289: 	ANDIM	SYSTEM_STATE,	1110B	;清除停电标志位
+1290	0x0219	0x76b3	   1290: 	ANDIM	ALREADY_ENTER,	1101B	;清除已经开始应急标志位
+1291			   
+1292			   1292: BAT_DOWN:	
+1293	0x021a	0xc1df	   1293: 	CALL	EMERGENCY_DISABLE
+1294			   
+1295	0x021b	0x564f	   1295: 	SBI	CNT0_EMERGENCY,	0CH	;和5分钟比较(0x12C)
+1296	0x021c	0x790e	   1296: 	LDI	TBR,		02H
+1297	0x021d	0x1050	   1297: 	SBC	CNT1_EMERGENCY
+1298	0x021e	0x788e	   1298: 	LDI	TBR,		01H
+1299	0x021f	0x1051	   1299: 	SBC	CNT2_EMERGENCY
+1300			   
+1301	0x0220	0x8a2a	   1301: 	BNC	LESS_5_MINUTE		;应急时长小于5分钟
+1302			   
+1303	0x0221	0x544f	   1303: 	SBI	CNT0_EMERGENCY,	08H	;和30分钟比较(0x708)
+1304	0x0222	0x780e	   1304: 	LDI	TBR,		00H
+1305	0x0223	0x1050	   1305: 	SBC	CNT1_EMERGENCY
+1306	0x0224	0x7b8e	   1306: 	LDI	TBR,		07H
+1307	0x0225	0x1051	   1307: 	SBC	CNT2_EMERGENCY
+1308			   
+1309	0x0226	0x8a2d	   1309: 	BNC	LESS_30_MINUTE		;应急时长小于30分钟
+1310			   
+1311			   1311: MORE_30_MINUTE:				;应急时长大于30分钟
+1312	0x0227	0x6a4e	   1312: 	ORIM	DURATION_EMER,	0100B
+1313	0x0228	0xc1e1	   1313: 	CALL	RE_CALC_TIME		;发生了应急放电事件，重新计算待充电时长
+1314	0x0229	0xe242	   1314: 	JMP	EMERGENCY_CTRL_END
+1315			   
+1316			   1316: LESS_5_MINUTE:
+1317	0x022a	0x68ce	   1317: 	ORIM	DURATION_EMER,	0001B
+1318	0x022b	0xc1e1	   1318: 	CALL	RE_CALC_TIME		;发生了应急放电事件，重新计算待充电时长
+1319	0x022c	0xe242	   1319: 	JMP	EMERGENCY_CTRL_END
+1320			   1320: 	
+1321			   1321: LESS_30_MINUTE:
+1322	0x022d	0x694e	   1322: 	ORIM	DURATION_EMER,	0010B
+1323	0x022e	0xc1e1	   1323: 	CALL	RE_CALC_TIME		;发生了应急放电事件，重新计算待充电时长
+1324	0x022f	0xe242	   1324: 	JMP	EMERGENCY_CTRL_END
+1325			   1325: 	
+1326			   
+1327			   1327: EMERGENCY_CNT:
+1328	0x0230	0x4135	   1328: 	ADI	F_496MS_1S,	0010B	;每秒检查一次
+1329	0x0231	0xaa3a	   1329: 	BA1	EMERGENCY_BATTERY
+1330			   
+1331	0x0232	0x76b5	   1331: 	ANDIM	F_496MS_1S,	1101B	;清除1s标志位
+1332	0x0233	0x5451	   1332: 	SBI	CNT2_EMERGENCY,	08H	;如果CNT达到0x800，则表示已应急放电0x800s = 2048s > 30min
+1333	0x0234	0x9a3a	   1333: 	BC	EMERGENCY_BATTERY	;此时无需再对应急放电时长计时
+1334			   
+1335	0x0235	0x48cf	   1335: 	ADIM	CNT0_EMERGENCY,	01H
+1336	0x0236	0x780e	   1336: 	LDI	TBR,		00H
+1337	0x0237	0x0450	   1337: 	ADCM	CNT1_EMERGENCY
+1338	0x0238	0x780e	   1338: 	LDI	TBR,		00H
+1339	0x0239	0x0451	   1339: 	ADCM	CNT2_EMERGENCY
+1340			   
+1341			   1341: EMERGENCY_BATTERY:			;检查电池是否已经耗尽
+1342	0x023a	0x6941	   1342: 	ORIM	FLAG_OCCUPIED,	0010B	;锁定通道1最终结果
+1343			   
+1344	0x023b	0x789d	   1344: 	LDI	CHN1_FINAL_RET1,01H
+1345	0x023c	0x1852	   1345: 	SUB	CMP_EXIT_EMER0
+1346	0x023d	0x789e	   1346: 	LDI	CHN1_FINAL_RET2,01H
+1347	0x023e	0x1053	   1347: 	SBC	CMP_EXIT_EMER1
+1348			   
+1349	0x023f	0x76c1	   1349: 	ANDIM	FLAG_OCCUPIED,	1101B	;释放对通道1最终结果的锁定
+1350			   
+1351	0x0240	0x8a42	   1351: 	BNC	EMERGENCY_CTRL_END
+1352	0x0241	0xe21a	   1352: 	JMP	BAT_DOWN		;
+1353			   
+1354			   
+1355			   1355: EMERGENCY_CTRL_END:
+1356	0x0242	0xd400	   1356: 	RTNI
+1357			   
+1358			   
+1359			   
+1360			   1360: ;***********************************************************
+1361			   1361: ;检查电池电压。
+1362			   1362: ;根据所测得电池电压结果，置相应电池状态标志位
+1363			   1363: ;***********************************************************
+1364			   1364: BAT_STATE_CHK:
+1365			   
+1366	0x0243	0x6941	   1366: 	ORIM	FLAG_OCCUPIED,	0010B	;锁定通道1最终结果
+1367			   
+1368	0x0244	0x789d	   1368: 	LDI	CHN1_FINAL_RET1,01H	
+1369	0x0245	0x1854	   1369: 	SUB	CMP_BAT_OPEN0		;判断电池是否开路
+1370	0x0246	0x789e	   1370: 	LDI	CHN1_FINAL_RET2,01H
+1371	0x0247	0x1055	   1371: 	SBC	CMP_BAT_OPEN1
+1372	0x0248	0x8a56	   1372: 	BNC	BAT_OPEN		;AD转换结果大于1.56V，电池开路
+1373	0x0249	0x7758	   1373: 	ANDIM	BAT_STATE,	1110B	;清除充电回路开路标志位
+1374			   
+1375	0x024a	0x789d	   1375: 	LDI	CHN1_FINAL_RET1,01H	
+1376	0x024b	0x1856	   1376: 	SUB	CMP_BAT_FULL0		;判断电池是否充满
+1377	0x024c	0x789e	   1377: 	LDI	CHN1_FINAL_RET2,01H
+1378	0x024d	0x1057	   1378: 	SBC	CMP_BAT_FULL1
+1379	0x024e	0x8a58	   1379: 	BNC	BAT_FULL		;AD转换结果大于1.44V，电池已充满
+1380	0x024f	0x76d8	   1380: 	ANDIM	BAT_STATE,	1101B	;清除电池已充满标志位
+1381			   
+1382	0x0250	0x789d	   1382: 	LDI	CHN1_FINAL_RET1,01H	
+1383	0x0251	0x1858	   1383: 	SUB	CMP_BAT_CHARGE0		;判断电池是否过低，需要充电了
+1384	0x0252	0x789e	   1384: 	LDI	CHN1_FINAL_RET2,01H
+1385	0x0253	0x1059	   1385: 	SBC	CMP_BAT_CHARGE1
+1386	0x0254	0x9a5b	   1386: 	BC	BAT_NEED_CHARGE		;AD转换结果小于1.35V，电池需要重新充电
+1387	0x0255	0xe25d	   1387: 	JMP	BAT_STATE_CHK_END
+1388			   
+1389			   1389: BAT_OPEN:
+1390	0x0256	0x68d8	   1390: 	ORIM	BAT_STATE,	0001B	;置充电回路开路标志位
+1391	0x0257	0xe25d	   1391: 	JMP	BAT_STATE_CHK_END
+1392			   
+1393			   1393: BAT_FULL:
+1394	0x0258	0x6958	   1394: 	ORIM	BAT_STATE,	0010B	;置电池已充满标志位
+1395	0x0259	0x75d8	   1395: 	ANDIM	BAT_STATE,	1011B	;清电池需要重新充电标志位
+1396	0x025a	0xe25d	   1396: 	JMP	BAT_STATE_CHK_END
+1397			   
+1398			   1398: BAT_NEED_CHARGE:
+1399	0x025b	0x6a58	   1399: 	ORIM	BAT_STATE,	0100B	;置电池需要重新充电标志位
+1400	0x025c	0xe25d	   1400: 	JMP	BAT_STATE_CHK_END
+1401			   
+1402			   1402: BAT_STATE_CHK_END:
+1403	0x025d	0x76c1	   1403: 	ANDIM	FLAG_OCCUPIED,	1101B	;释放对通道1最终结果的锁定
+1404	0x025e	0xd400	   1404: 	RTNI
+1405			   
+1406			   
+1407			   1407: ;***********************************************************
+1408			   1408: ;根据通道0转换结果，检测光源状态，并设置光源故障标志位
+1409			   1409: ;***********************************************************
+1410			   1410: PROCESS_LIGHT:
+1411			   
+1412	0x025f	0x68c1	   1412: 	ORIM	FLAG_OCCUPIED,	0001B	;锁定通道0最终结果
+1413			   
+1414	0x0260	0x789d	   1414: 	LDI	CHN1_FINAL_RET1,01H
+1415	0x0261	0x1859	   1415: 	SUB	CMP_LIGHT0
+1416	0x0262	0x789e	   1416: 	LDI	CHN1_FINAL_RET2,01H
+1417	0x0263	0x105a	   1417: 	SBC	CMP_LIGHT1
+1418			   
+1419	0x0264	0x7741	   1419: 	ANDIM	FLAG_OCCUPIED,	1110B	;释放对通道0最终结果的锁定
+1420			   
+1421	0x0265	0x9a68	   1421: 	BC	ERROR_LIGHT		;光源故障
+1422			   
+1423	0x0266	0x76dc	   1423: 	ANDIM	ALARM_STATE,	1101B	;清除光源故障标志位
+1424	0x0267	0xe269	   1424: 	JMP     PROCESS_LIGHT_END
+1425			   
+1426			   1426: ERROR_LIGHT:
+1427	0x0268	0x695c	   1427: 	ORIM	ALARM_STATE,	0010B	;置光源故障标志位
+1428			   
+1429			   1429: PROCESS_LIGHT_END:
+1430			   
+1431	0x0269	0xd400	   1431: 	RTNI
+1432			   
+1433			   1433: ;***********************************************************
+1434			   1434: ;光源状态检测，并置相应标志位
+1435			   1435: ;***********************************************************
+1436			   1436: LIGHT_STATE_CHK:
+1437			   
+1438	0x026a	0x7a8e	   1438: 	LDI	TBR,		0101B	;将立即数0101B载入累加器A中
+1439	0x026b	0x304b	   1439: 	AND	LIGHT_TYPE		;BIT0\2为1，代表灯具为常亮型
+1440			   
+1441	0x026c	0x826e	   1441: 	BNZ	TYPE_ON			;为常亮型灯具
+1442	0x026d	0xe270	   1442: 	JMP	TYPE_OFF		;为常灭型灯具
+1443			   1443: 	
+1444			   1444: TYPE_ON:
+1445	0x026e	0xc25f	   1445: 	CALL	PROCESS_LIGHT		;检测光源，并设置相应标志位
+1446	0x026f	0xe273	   1446: 	JMP     LIGHT_STATE_CHK_END
+1447			   
+1448			   1448: TYPE_OFF:
+1449	0x0270	0x40b1	   1449: 	ADI	SYSTEM_STATE,	01H	;检查主电源供电是否正常
+1450	0x0271	0xa273	   1450: 	BA0	LIGHT_STATE_CHK_END	;处于主电源正常供电状态，无需对光源进行检测
+1451	0x0272	0xc25f	   1451: 	CALL	PROCESS_LIGHT		;检测光源，并设置相应标志位
+1452			   
+1453			   1453: LIGHT_STATE_CHK_END:
+1454	0x0273	0xd400	   1454: 	RTNI
+1455			   
+1456			   
+1457			   1457: ;***********************************************************
+1458			   1458: ;LED与蜂鸣器控制
+1459			   1459: ;充电回路无故障的前提下，红色LED:未充电时关闭红灯，在充电时打开红灯
+1460			   1460: ;充电回路开路/短路: 红灯灭，黄灯1HZ闪烁
+1461			   1461: ;光源开路/短路:             黄灯3HZ闪烁
+1462			   1462: ;放电时间不足:              黄灯常亮
+1463			   1463: ;并根据模式标志位，控制蜂鸣器
+1464			   1464: ;***********************************************************
+1465			   1465: TIPS_PROCESS:
+1466			   1466: ;红灯的处理
+1467			   1467: RED:
+1468	0x0274	0x385c	   1468: 	LDA	ALARM_STATE 		;判断电池充电回路是否处于故障状态
+1469	0x0275	0xa278	   1469: 	BA0	RED_ERROR		;电池有故障，则跳转
+1470			   
+1471	0x0276	0x3833	   1471: 	LDA	ALREADY_ENTER		;电池充电回路没有故障，
+1472	0x0277	0xaa7a	   1472: 	BA1	RED_ON
+1473			   1473: 	
+1474			   1474: RED_ERROR:	
+1475	0x0278	0x770a	   1475: 	ANDIM	PORTC,		1110B	;关闭红灯
+1476	0x0279	0xe27b	   1476: 	JMP	GREEN
+1477			   
+1478			   1478: RED_ON:
+1479	0x027a	0x688a	   1479: 	ORIM	PORTC,		0001B	;打开红灯	
+1480			   
+1481			   1481: ;--------------------------------------------------------------------------
+1482			   1482: ;绿灯的处理
+1483			   1483: GREEN:
+1484	0x027b	0x3866	   1484: 	LDA	GREEN_FLASH
+1485	0x027c	0xaa84	   1485: 	BA1	GREEN_1HZ
+1486	0x027d	0xb28c	   1486: 	BA2	GREEN_3HZ
+1487			   
+1488	0x027e	0x3831	   1488: 	LDA	SYSTEM_STATE
+1489	0x027f	0x8282	   1489: 	BNZ	GREEN_OFF		;如果当前系统为应急状态，则绿灯灭
+1490	0x0280	0x690a	   1490: 	ORIM	PORTC,		0010B	;如果当前系统主电源正常，则绿灯亮
+1491	0x0281	0xe28f	   1491: 	JMP	ALARM_BAT
+1492			   
+1493			   1493: GREEN_OFF:
+1494	0x0282	0x768a	   1494: 	ANDIM	PORTC,		1101B	;熄灭绿灯
+1495	0x0283	0xe28f	   1495: 	JMP	ALARM_BAT
+1496			   
+1497			   1497: GREEN_1HZ:	
+1498	0x0284	0x40fc	   1498: 	ADI	F_168MS,	01H	;判断是否到了一个新168MS
+1499	0x0285	0xa2a7	   1499: 	BA0 	TIPS_PROCESS_END	;还没有到168MS，直接跳至结束
+1500			   1500: 	
+1501	0x0286	0x48e7	   1501: 	ADIM	CNT_LED_GREEN,	01H
+1502	0x0287	0x51e7	   1502: 	SBI	CNT_LED_GREEN,	03H
+1503			   
+1504	0x0288	0x8a8f	   1504: 	BNC	ALARM_BAT
+1505	0x0289	0x7867	   1505: 	LDI	CNT_LED_GREEN,	00H
+1506	0x028a	0x610a	   1506: 	EORIM	PORTC,		0010B
+1507	0x028b	0xe28f	   1507: 	JMP	ALARM_BAT
+1508			   
+1509			   1509: GREEN_3HZ:	
+1510	0x028c	0x40fc	   1510: 	ADI	F_168MS,	01H	;判断是否到了一个新168MS
+1511	0x028d	0xa2a7	   1511: 	BA0 	TIPS_PROCESS_END
+1512	0x028e	0x610a	   1512: 	EORIM	PORTC,		0010B
+1513			   1513: 	
+1514			   1514: ;--------------------------------------------------------------------------
+1515			   1515: ;电池充电回路故障处理
+1516			   1516: ALARM_BAT:	
+1517	0x028f	0x788e	   1517: 	LDI	TBR,		0001B	;将0001B载入累加器A中
+1518	0x0290	0x305c	   1518: 	AND	ALARM_STATE 		;判断电池是否处于故障状态
+1519	0x0291	0x9299	   1519: 	BAZ	ALARM_LIGHT		;电池没有故障，则跳转
+1520			   
+1521	0x0292	0x40fc	   1521: 	ADI	F_168MS,	01H	;判断是否到了一个新168MS
+1522	0x0293	0xa29f	   1522: 	BA0	ALARM_TIME_NOT_ENOUGH	;还未到新的168MS,跳转
+1523			   
+1524	0x0294	0x48df	   1524: 	ADIM	CNT_LED_YELLOW,	01H	;168MS已到，计数器加1
+1525			   
+1526	0x0295	0x51df	   1526: 	SBI	CNT_LED_YELLOW,	03H
+1527	0x0296	0x8a99	   1527: 	BNC	ALARM_LIGHT		;未满500ms
+1528			   
+1529	0x0297	0x785f	   1529: 	LDI	CNT_LED_YELLOW,	00H	;清零计数器
+1530	0x0298	0x608c	   1530: 	EORIM	PORTE,		0001B	;以1HZ频率翻转黄灯
+1531			   
+1532			   1532: ;--------------------------------------------------------------------------
+1533			   1533: ;光源故障的处理
+1534			   1534: ALARM_LIGHT:
+1535	0x0299	0x790e	   1535: 	LDI	TBR,		0010B	;将0010B载入累加器A中
+1536	0x029a	0x305c	   1536: 	AND	ALARM_STATE		;判断光源是否处于故障状态
+1537	0x029b	0x929f	   1537: 	BAZ	ALARM_TIME_NOT_ENOUGH	;光源没有故障，则跳转
+1538			   
+1539	0x029c	0x40fa	   1539: 	ADI	CNT0_168MS,	01H	;判断是否到了一个新168MS
+1540	0x029d	0xa29f	   1540: 	BA0	ALARM_TIME_NOT_ENOUGH	;还未到新的168MS,跳转
+1541			   
+1542	0x029e	0x608c	   1542: 	EORIM	PORTE,		0001B	;以3HZ频率翻转黄灯
+1543			   
+1544			   1544: ;--------------------------------------------------------------------------
+1545			   1545: ;应急时长不足的处理
+1546			   1546: ALARM_TIME_NOT_ENOUGH:
+1547	0x029f	0x7a0e	   1547: 	LDI	TBR,		0100B	;将0100B载入累加器A中
+1548	0x02a0	0x305c	   1548: 	AND	ALARM_STATE		;判断是否出现放电时间不足之故障
+1549	0x02a1	0x92a4	   1549: 	BAZ	OFF_LED_YELLOW		;没有出现放电时间不足之故障，则跳转
+1550			   1550: 	
+1551	0x02a2	0x688c	   1551: 	ORIM	PORTE,		0001B	;黄灯长亮
+1552	0x02a3	0xe2a7	   1552: 	JMP	TIPS_PROCESS_END
+1553			   
+1554			   1554: OFF_LED_YELLOW:
+1555	0x02a4	0x385c	   1555: 	LDA	ALARM_STATE		;如果没有任何故障，则关闭黄灯
+1556	0x02a5	0x82a7	   1556: 	BNZ	TIPS_PROCESS_END
+1557	0x02a6	0x770c	   1557: 	ANDIM	PORTE,		1110B
+1558			   
+1559			   1559: ;--------------------------------------------------------------------------
+1560			   
+1561			   1561: TIPS_PROCESS_END:
+1562	0x02a7	0x777c	   1562: 	ANDIM	F_168MS,	1110B	;清除168MS标志
+1563	0x02a8	0xd400	   1563: 	RTNI
+1564			   
+1565			   
+1566			   
+1567			   1567: ;***********************************************************
+1568			   1568: ;按键扫描
+1569			   1569: ;***********************************************************
+1570			   1570: KEY_PROCESS:
+1571			   
+1572	0x02a9	0x7f1b	   1572: 	LDI 	PDCR,		1110B 	;设置PD.0 为输入，PD.3 为输出
+1573			   1573: 	
+1574			   1574: KEY_CHECK:
+1575	0x02aa	0x40b5	   1575: 	ADI	F_496MS_1S,	0001B	;检查496MS标志位
+1576	0x02ab	0xa2e2	   1576: 	BA0	KEY_PROCESS_END		;未到496ms，暂时不做按键扫描
+1577			   
+1578	0x02ac	0x7735	   1578: 	ANDIM	F_496MS_1S,	1110B	;清496MS标志位
+1579	0x02ad	0xc37b	   1579: 	CALL 	DELAY_5MS 		;消除按键抖动
+1580			   1580: 	
+1581	0x02ae	0x380b	   1581: 	LDA 	PORTD,		00H 	;读取PD 口状态
+1582	0x02af	0x3c75	   1582: 	STA 	TEMP,		00H 	;把PD 口状态存到TEMP 寄存器中
+1583	0x02b0	0xc37b	   1583: 	CALL 	DELAY_5MS 		;消除按键抖动
+1584			   1584: 	
+1585	0x02b1	0x380b	   1585: 	LDA 	PORTD,		00H 	;读取PD 口状态
+1586	0x02b2	0x1875	   1586: 	SUB 	TEMP,		00H 	;比较读取PD.0 口状态值，不相等则错误
+1587	0x02b3	0xa2df	   1587: 	BA0 	KEY_ERROR
+1588	0x02b4	0xc37b	   1588: 	CALL 	DELAY_5MS 		;消除按键抖动
+1589			   1589: 	
+1590	0x02b5	0x380b	   1590: 	LDA 	PORTD,		00H 	;读取PD 口状态
+1591	0x02b6	0x1875	   1591: 	SUB 	TEMP,		00H 	;比较读取PD.0 口状态值，不相等则错误
+1592	0x02b7	0xa2df	   1592: 	BA0 	KEY_ERROR
+1593			   1593: 	
+1594	0x02b8	0x3875	   1594: 	LDA 	TEMP		 	;将TEMP 中的数据储存至累加器A 中
+1595	0x02b9	0xa2bb	   1595: 	BA0	NO_KEY_PRESSED		;没有检测到按键
+1596			   1596: 	
+1597	0x02ba	0xe2ce	   1597: 	JMP	KEY_PRESSED		;检测到有按键按下
+1598			   
+1599			   1599: NO_KEY_PRESSED:
+1600	0x02bb	0x3878	   1600: 	LDA	BTN_PRE_STA		;将上一次按键状态载入累加器A 中
+1601	0x02bc	0x0875	   1601: 	ADD	TEMP			;TEMP + A -> A
+1602	0x02bd	0xa2bf	   1602: 	BA0	KEY_RELEASED		;上一次按下，本次未按下
+1603			   
+1604	0x02be	0xe2df	   1604: 	JMP 	ALWAYS_NO_KEY		;上一次未按下，本次也未按下
+1605			   
+1606			   1606: KEY_RELEASED:
+1607			   
+1608			   1608: 	;根据按键被按下的时长T，决定进入以下何种状态:
+1609			   1609: 	; T < 3s      -- "模拟停电"
+1610			   1610: 	; 3s < T < 5s -- "手动月检"
+1611			   1611: 	; 5s < T < 7s -- "手动年检"
+1612			   1612: 	; T > 7s      -- "关断应急输出"
+1613	0x02bf	0x5379	   1613: 	SBI	BTN_PRESS_CNT,	06H	;
+1614	0x02c0	0x8ac7	   1614: 	BNC	LESS_3S			;按键持续时长小于3S, 6.04 * 496ms = 3s
+1615	0x02c1	0x5579	   1615: 	SBI	BTN_PRESS_CNT,	0AH	;
+1616	0x02c2	0x8ac9	   1616: C	SCP_ARRIVE_30MIN
+1617	0x02c3	0x5779	   1617: 	SBI	BTN_PRESS_CNT,	0EH	;
+1618	0x02c4	0x8acb	   1618: 	BNC	LESS_7S			;按键持续时长小于7S, 14.11 * 496ms = 7s
+1619			   
+1620			   1620: MORE_7S:
+1621	0x02c5	0x7c7f	   1621: 	LDI	PRESS_DURATION,	1000B	;置"大于7秒"状态
+1622	0x02c6	0xe2cd	   1622: 	JMP	RELEASED_OVER	
+1623			   1623: LESS_3S:
+1624	0x02c7	0x787f	   1624: 	LDI	PRESS_DURATION,	0000B	;清除"小于3秒"状态
+1625	0x02c8	0xe2cd	   1625: 	JMP	RELEASED_OVER
+1626			   1626: LESS_5S:
+1627	0x02c9	0x797f	   1627: 	LDI	PRESS_DURATION,	0010B	;置"大于3秒，小于5秒"状态
+1628	0x02ca	0xe2cd	   1628: 	JMP	RELEASED_OVER
+1629			   1629: LESS_7S:
+1630	0x02cb	0x7a7f	   1630: 	LDI	PRESS_DURATION,	0100B	;置"大于5秒，小于7秒"状态
+1631	0x02cc	0xe2cd	   1631: 	JMP	RELEASED_OVER
+1632			   1632: 	
+1633			   1633: RELEASED_OVER:
+1634	0x02cd	0xe2df	   1634: 	JMP	ON_RELEASED
+1635			   
+1636			   
+1637			   1637: KEY_PRESSED:
+1638			   1638: 	;SBI	BTN_PRESS_CNT,	06H	
+1639			   1639: 	;BC	MORE_3S			;按键持续时长大于3S, 6.04 * 496ms = 3s
+1640			   1640: 	;ORIM	PRESS_DURATION,	0001B	;按键持续时长小于3S, 置"小于3秒"状态
+1641			   1641: 	;JMP	PRESSED_DURATION_ADD_1
+1642			   1642: 	
+1643			   1643: ;MORE_3S:
+1644			   1644: 	;ANDIM	PRESS_DURATION,	1110B	;按键持续时长大于3S, 清除"小于3秒"状态
+1645			   
+1646			   1646: PRESSED_DURATION_ADD_1:	
+1647	0x02ce	0x57f9	   1647: 	SBI	BTN_PRESS_CNT,  0FH	;比较BTN_PRESS_CNT 与 0x0F 的大小
+1648	0x02cf	0x9ae0	   1648: 	BC	KEY_CHECK_PROCESS_OVER	;如果BTN_PRESS_CNT已经累加至0x0F，则不再累加
+1649	0x02d0	0x48f9	   1649: 	ADIM	BTN_PRESS_CNT,	01H	;496MS计时次数加1
+1650			   
+1651			   1651: KEY_PRESSED_CHK:
+1652	0x02d1	0x5379	   1652: 	SBI	BTN_PRESS_CNT,	06H	;
+1653	0x02d2	0x8ad9	   1653: 	BNC	KPC_LESS_3S		;按键持续时长小于3S, 6.04 * 496ms = 3s
+1654	0x02d3	0x5579	   1654: 	SBI	BTN_PRESS_CNT,	0AH	;
+1655	0x02d4	0x8adb	   1655: 	BNC	KPC_LESS_5S		;按键持续时长小于5S, 10.08 * 496ms = 5s
+1656	0x02d5	0x5779	   1656: 	SBI	BTN_PRESS_CNT,	0EH	;
+1657	0x02d6	0x8add	   1657: 	BNC	KPC_LESS_7S		;按键持续时长小于7S, 14.11 * 496ms = 7s
+1658			   
+1659			   1659: KPC_MORE_7S:
+1660	0x02d7	0x7c7f	   1660: 	LDI	PRESS_DURATION,	1000B	;置"大于7秒"状态
+1661	0x02d8	0xe2e0	   1661: 	JMP	KEY_CHECK_PROCESS_OVER	
+1662			   1662: KPC_LESS_3S:
+1663	0x02d9	0x78ff	   1663: 	LDI	PRESS_DURATION,	0001B	;置"小于3秒"状态
+1664	0x02da	0xe2e0	   1664: 	JMP	KEY_CHECK_PROCESS_OVER
+1665			   1665: KPC_LESS_5S:
+1666	0x02db	0x797f	   1666: 	LDI	PRESS_DURATION,	0010B	;置"大于3秒，小于5秒"状态
+1667	0x02dc	0xe2e0	   1667: 	JMP	KEY_CHECK_PROCESS_OVER
+1668			   1668: KPC_LESS_7S:
+1669	0x02dd	0x7a7f	   1669: 	LDI	PRESS_DURATION,	0100B	;置"大于5秒，小于7秒"状态
+1670	0x02de	0xe2e0	   1670: 	JMP	KEY_CHECK_PROCESS_OVER
+1671			   
+1672			   1672: KEY_ERROR: 				;错误键值处理
+1673			   1673: ALWAYS_NO_KEY:
+1674			   1674: ON_RELEASED:
+1675	0x02df	0x7879	   1675: 	LDI	BTN_PRESS_CNT,	00H
+1676			   1676: 	
+1677			   1677: KEY_CHECK_PROCESS_OVER: 		;按键扫描及处理结束，返回
+1678	0x02e0	0x70f5	   1678: 	ANDIM	TEMP,		0001B	;
+1679	0x02e1	0x3c78	   1679: 	STA	BTN_PRE_STA		;TEMP -> BTN_PRE_STA
+1680			   1680: 	
+1681			   1681: KEY_PROCESS_END:
+1682	0x02e2	0xd400	   1682: 	RTNI
+1683			   
+1684			   1684: 	
+1685			   
+1686			   
+1687			   1687: ;***********************************************************
+1688			   1688: ;设置自检标志位
+1689			   1689: ;SELF_STATE
+1690			   1690: ;
+1691			   1691: ;
+1692			   1692: ;***********************************************************
+1693			   1693: SELF_CHK_STATE:
+1694	0x02e3	0x3831	   1694: 	LDA	SYSTEM_STATE
+1695			   1695: 	;BA0	SELF_CHK_STATE_END	;当前处于停电状态，不作自检标志位检查
+1696			   
+1697	0x02e4	0x3836	   1697: 	LDA	F_TIME
+1698	0x02e5	0xb30a	   1698: 	BA2	SET_YEAR_BIT		;如果1年时间已到，则跳转
+1699	0x02e6	0xab07	   1699: 	BA1	SET_MONTH_BIT		;如果1月时间已到，则跳转
+1700			   
+1701			   1701: ;--------------------------------------------------------------------------------------
+1702			   
+1703			   1703: MANUAL_CHK:
+1704	0x02e7	0x387f	   1704: 	LDA	PRESS_DURATION		
+1705	0x02e8	0xa2ef	   1705: 	BA0	SCS_LESS_3S		;如果持续按键时长小于3秒，则跳转
+1706	0x02e9	0xaafd	   1706: 	BA1	SCS_LESS_5S		;如果持续按键时长大于3秒，小于5秒，则跳转
+1707	0x02ea	0xb302	   1707: 	BA2	SCS_LESS_7S		;如果持续按键时长大于5秒，小于7秒，则跳转
+1708			   
+1709	0x02eb	0x3832	   1709: 	LDA	SELF_STATE
+1710	0x02ec	0x830d	   1710: 	BNZ	SCS_CLEAR_DURATION
+1711	0x02ed	0x7866	   1711: 	LDI	GREEN_FLASH,	00H	;如果当前没有自检，则让绿灯停止闪烁
+1712			   1712: 	
+1713	0x02ee	0xe30d	   1713: 	JMP	SCS_CLEAR_DURATION
+1714			   1714: 	
+1715			   1715: ;--------------------------------------------------------------------------------------
+1716			   
+1717			   1717: SCS_LESS_3S:
+1718	0x02ef	0x40f8	   1718: 	ADI	BTN_PRE_STA,	01H
+1719	0x02f0	0xa2fb	   1719: 	BA0	BTN_PRE_PRESSED		;如果当前按键处于按下状态，则跳转
+1720			   
+1721	0x02f1	0x7332	   1721: 	ANDIM	SELF_STATE,	0110B	;清模拟应急标志位
+1722			   
+1723	0x02f2	0x4432	   1723: 	ADI	SELF_STATE,	1000B	;
+1724	0x02f3	0xbb0d	   1724: 	BA3	SCS_CLEAR_DURATION	;如果当前不是手动月检或手动年检，则跳转
+1725			   1725: 	
+1726	0x02f4	0xaaf7	   1726: 	BA1	SCS_SIMU_MONTH		;如果当前为手动月检，则跳转
+1727	0x02f5	0xb2f9	   1727: 	BA2	SCS_SIMU_YEAR		;如果当前为手动年检，则跳转	
+1728	0x02f6	0xe30d	   1728: 	JMP	SCS_CLEAR_DURATION
+1729			   
+1730			   1730: SCS_SIMU_MONTH:
+1731	0x02f7	0x72b2	   1731: 	ANDIM	SELF_STATE,	0101B	;退出手动月检
+1732	0x02f8	0xe30d	   1732: 	JMP	SCS_CLEAR_DURATION
+1733			   
+1734			   1734: SCS_SIMU_YEAR:
+1735	0x02f9	0x71b2	   1735: 	ANDIM	SELF_STATE,	0011B	;退出手动年检
+1736	0x02fa	0xe30d	   1736: 	JMP	SCS_CLEAR_DURATION
+1737			   
+1738			   1738: BTN_PRE_PRESSED:
+1739	0x02fb	0x7cb2	   1739: 	LDI	SELF_STATE,	1001B	;置模拟应急标志位
+1740	0x02fc	0xe30d	   1740: 	JMP	SCS_CLEAR_DURATION
+1741			   
+1742			   1742: ;--------------------------------------------------------------------------------------
+1743			   
+1744			   1744: SCS_LESS_5S:
+1745	0x02fd	0x7966	   1745: 	LDI	GREEN_FLASH,	0010B	;让绿灯以1HZ的频率开始闪烁
+1746			   
+1747	0x02fe	0x40f8	   1747: 	ADI	BTN_PRE_STA,	01H
+1748	0x02ff	0xa30d	   1748: 	BA0	SCS_CLEAR_DURATION	;如果当前按键为按下状态，则跳转
+1749			   
+1750	0x0300	0x7d32	   1750: 	LDI	SELF_STATE,	1010B	;置手动月检标志位
+1751	0x0301	0xe30d	   1751: 	JMP	SCS_CLEAR_DURATION
+1752			   
+1753			   1753: ;--------------------------------------------------------------------------------------
+1754			   
+1755			   1755: SCS_LESS_7S:
+1756	0x0302	0x7a66	   1756: 	LDI	GREEN_FLASH,	0100B	;让绿灯以3HZ的频率开始闪烁
+1757			   
+1758	0x0303	0x40f8	   1758: 	ADI	BTN_PRE_STA,	01H
+1759	0x0304	0xa30d	   1759: 	BA0	SCS_CLEAR_DURATION	;如果当前按键为按下状态，则跳转
+1760			   
+1761	0x0305	0x7e32	   1761: 	LDI	SELF_STATE,	1100B	;置手动年检标志位
+1762	0x0306	0xe30d	   1762: 	JMP	SCS_CLEAR_DURATION
+1763			   
+1764			   1764: ;--------------------------------------------------------------------------------------	
+1765			   
+1766			   1766: SET_MONTH_BIT:
+1767	0x0307	0x76b6	   1767: 	ANDIM	F_TIME,		1101B	;清1月到标志位
+1768	0x0308	0x7932	   1768: 	LDI	SELF_STATE,	0010B	;置自动月检标志位
+1769	0x0309	0xe30e	   1769: 	JMP	SELF_CHK_STATE_END
+1770			   
+1771			   1771: ;--------------------------------------------------------------------------------------	
+1772			   
+1773			   1773: SET_YEAR_BIT:
+1774	0x030a	0x75b6	   1774: 	ANDIM	F_TIME,		1011B	;清1年到标志位
+1775	0x030b	0x7a32	   1775: 	LDI	SELF_STATE,	0100B	;置自动年检标志位
+1776	0x030c	0xe30e	   1776: 	JMP	SELF_CHK_STATE_END
+1777			   
+1778			   1778: ;--------------------------------------------------------------------------------------	
+1779			   
+1780			   1780: SCS_CLEAR_DURATION:
+1781	0x030d	0x747f	   1781: 	ANDIM	PRESS_DURATION,	1000B	;清按键时长标志低三位
+1782			   
+1783			   
+1784			   1784: SELF_CHK_STATE_END:
+1785	0x030e	0xd400	   1785: 	RTNI
+1786			   
+1787			   
+1788			   
+1789			   
+1790			   1790: ;***********************************************************
+1791			   1791: ;根据自检标志位，进行自检
+1792			   1792: ;***********************************************************
+1793			   1793: SELF_CHK_PROCESS:
+1794			   
+1795	0x030f	0x3831	   1795: 	LDA	SYSTEM_STATE
+1796	0x0310	0xa37a	   1796: 	BA0	SELF_CHK_PROCESS_END	;如果停电，则跳转
+1797			   
+1798	0x0311	0x3832	   1798: 	LDA	SELF_STATE		;检查自检状态标志
+1799	0x0312	0xa31e	   1799: 	BA0	SCP_EMERGENCY		;如果模拟停电标志位为1，则跳转
+1800			   
+1801	0x0313	0x3832	   1801: 	LDA	SELF_STATE
+1802	0x0314	0xab22	   1802: 	BA1	SCP_MONTH		;如果手动月检标志为1，则跳转
+1803			   
+1804	0x0315	0x4233	   1804: 	ADI	ALREADY_ENTER,	0100B	
+1805	0x0316	0xb318	   1805: 	BA2	SCP_CHK_YEAR_BIT	;如果上一次不是月检，则跳转
+1806	0x0317	0xe33c	   1806: 	JMP	SCP_ARRIVE_120S		;如果上一次月检标志为1，本次为0，则退出月检	
+1807			   
+1808			   1808: SCP_CHK_YEAR_BIT:
+1809	0x0318	0x3832	   1809: 	LDA	SELF_STATE
+1810	0x0319	0xb343	   1810: 	BA2	SCP_YEAR		;如果手动年检标志为1，则跳转
+1811			   
+1812	0x031a	0x4433	   1812: 	ADI	ALREADY_ENTER,	1000B	
+1813	0x031b	0xbb1d	   1813: 	BA3	SCP_CLEAR_ALL		;如果上一次不是年检，则跳转
+1814	0x031c	0xe361	   1814: 	JMP	SCP_ARRIVE_30MIN	;如果上一次年检标志为1，本次为0，则退出年检
+1815			   
+1816			   1816: SCP_CLEAR_ALL:
+1817	0x031d	0xe320	   1817: 	JMP	SCP_DIS_EMERGENCY	;如果自检标志均为0，则关闭应急
+1818			   1818: 	
+1819			   1819: ;---------------------------------------------------------------------------
+1820			   
+1821			   1821: SCP_EMERGENCY:
+1822	0x031e	0x68a0	   1822: 	ORIM	PWMC0,		0001B	;使能PWM0输出
+1823	0x031f	0xe37a	   1823: 	JMP	SELF_CHK_PROCESS_END
+1824			   
+1825			   1825: ;---------------------------------------------------------------------------
+1826			   
+1827			   1827: SCP_DIS_EMERGENCY:
+1828	0x0320	0x7720	   1828: 	ANDIM	PWMC0,		1110B	;关闭PWM0输出
+1829	0x0321	0xe37a	   1829: 	JMP	SELF_CHK_PROCESS_END
+1830			   
+1831			   1831: ;---------------------------------------------------------------------------
+1832			   
+1833			   1833: SCP_MONTH:
+1834	0x0322	0x3833	   1834: 	LDA	ALREADY_ENTER
+1835	0x0323	0xb32a	   1835: 	BA2	SCP_MONTH_1S		;如果已经打开应急，则跳转
+1836			   
+1837	0x0324	0x6a33	   1837: 	ORIM	ALREADY_ENTER,	0100B	;置已经进入手动月检标志位
+1838	0x0325	0x784f	   1838: 	LDI	CNT0_EMERGENCY,	00H	;应急时长清零
+1839	0x0326	0x7850	   1839: 	LDI	CNT1_EMERGENCY,	00H
+1840	0x0327	0x7851	   1840: 	LDI	CNT2_EMERGENCY,	00H
+1841	0x0328	0x68a0	   1841: 	ORIM	PWMC0,		0001B	;使能PWM0输出
+1842	0x0329	0xe37a	   1842: 	JMP	SELF_CHK_PROCESS_END
+1843			   1843: 	
+1844			   1844: ;---------------------------------------------------------------------------
+1845			   
+1846			   1846: SCP_MONTH_1S:
+1847	0x032a	0x4135	   1847: 	ADI	F_496MS_1S,	0010B
+1848	0x032b	0xab7a	   1848: 	BA1	SELF_CHK_PROCESS_END	;还未到1秒，则跳转
+1849			   
+1850	0x032c	0x76b5	   1850: 	ANDIM	F_496MS_1S,	1101B	;清供应急计时用的1秒标志位
+1851			   
+1852	0x032d	0x544f	   1852: 	SBI	CNT0_EMERGENCY,	08H	;和120秒比较(0x78)
+1853	0x032e	0x7b8e	   1853: 	LDI	TBR,		07H
+1854	0x032f	0x1050	   1854: 	SBC	CNT1_EMERGENCY
+1855			   
+1856	0x0330	0x9b3c	   1856: 	BC	SCP_ARRIVE_120S		;如果应急时长超过120秒，则跳转
+1857			   
+1858	0x0331	0x48cf	   1858: 	ADIM	CNT0_EMERGENCY,	01H	;应急时长加1
+1859	0x0332	0x780e	   1859: 	LDI	TBR,		00H
+1860	0x0333	0x0450	   1860: 	ADCM	CNT1_EMERGENCY
+1861			   
+1862	0x0334	0x6941	   1862: 	ORIM	FLAG_OCCUPIED,	0010B	;锁定通道1最终结果
+1863			   
+1864	0x0335	0x789d	   1864: 	LDI	CHN1_FINAL_RET1,01H
+1865	0x0336	0x1852	   1865: 	SUB	CMP_EXIT_EMER0
+1866	0x0337	0x789e	   1866: 	LDI	CHN1_FINAL_RET2,01H
+1867	0x0338	0x1053	   1867: 	SBC	CMP_EXIT_EMER1
+1868			   
+1869	0x0339	0x76c1	   1869: 	ANDIM	FLAG_OCCUPIED,	1101B	;释放对通道1最终结果的锁定
+1870			   
+1871			   1871: 	;BNC	SELF_CHK_PROCESS_END	;如果电池还未耗尽，则跳转
+1872	0x033a	0xe37a	   1872: 	JMP	SELF_CHK_PROCESS_END	;如果电池还未耗尽，则跳转
+1873			   
+1874	0x033b	0x6a5c	   1874: 	ORIM	ALARM_STATE,	0100B	;置放电时长不足标志位
+1875			   1875: 	
+1876			   1876: ;---------------------------------------------------------------------------
+1877			   
+1878			   1878: SCP_ARRIVE_120S:
+1879	0x033c	0x7720	   1879: 	ANDIM	PWMC0,		1110B	;关闭PWM0输出
+1880	0x033d	0x7832	   1880: 	LDI	SELF_STATE,	0000B	;清月检标志位
+1881	0x033e	0x76e6	   1881: 	ANDIM	GREEN_FLASH,	1101B	;让绿灯停止以1HZ的频率闪烁	
+1882	0x033f	0x75b3	   1882: 	ANDIM	ALREADY_ENTER,	1011B	;清已经进入手动月检标志位
+1883			   
+1884	0x0340	0x68ce	   1884: 	ORIM	DURATION_EMER,	0001B	;应急时长为2分钟，置应急时长小于5分钟标志位
+1885	0x0341	0xc1e1	   1885: 	CALL	RE_CALC_TIME		;根据应急时长，重新计算待充电时长
+1886	0x0342	0xe37a	   1886: 	JMP	SELF_CHK_PROCESS_END
+1887			   1887: 	
+1888			   1888: ;---------------------------------------------------------------------------
+1889			   
+1890			   1890: SCP_YEAR:
+1891	0x0343	0x3833	   1891: 	LDA	ALREADY_ENTER
+1892	0x0344	0xbb4b	   1892: 	BA3	SCP_YEAR_1S		;如果已经打开应急，则跳转
+1893			   
+1894	0x0345	0x6c33	   1894: 	ORIM	ALREADY_ENTER,	1000B	;置已经进入应急标志位
+1895	0x0346	0x784f	   1895: 	LDI	CNT0_EMERGENCY,	00H	;应急时长清零
+1896	0x0347	0x7850	   1896: 	LDI	CNT1_EMERGENCY,	00H
+1897	0x0348	0x7851	   1897: 	LDI	CNT2_EMERGENCY,	00H
+1898	0x0349	0x68a0	   1898: 	ORIM	PWMC0,		0001B	;使能PWM0输出
+1899	0x034a	0xe37a	   1899: 	JMP	SELF_CHK_PROCESS_END
+1900			   
+1901			   1901: SCP_YEAR_1S:
+1902	0x034b	0x4135	   1902: 	ADI	F_496MS_1S,	0010B
+1903	0x034c	0xab7a	   1903: 	BA1	SELF_CHK_PROCESS_END	;还未到1秒，则跳转
+1904			   
+1905	0x034d	0x76b5	   1905: 	ANDIM	F_496MS_1S,	1101B	;清供应急计时用的1秒标志位
+1906			   
+1907	0x034e	0x48cf	   1907: 	ADIM	CNT0_EMERGENCY,	01H	;应急时长加1
+1908	0x034f	0x780e	   1908: 	LDI	TBR,		00H
+1909	0x0350	0x0450	   1909: 	ADCM	CNT1_EMERGENCY
+1910	0x0351	0x780e	   1910: 	LDI	TBR,		00H
+1911	0x0352	0x0451	   1911: 	ADCM	CNT2_EMERGENCY
+1912			   1912: 	
+1913	0x0353	0x6941	   1913: 	ORIM	FLAG_OCCUPIED,	0010B	;锁定通道1最终结果
+1914			   
+1915	0x0354	0x789d	   1915: 	LDI	CHN1_FINAL_RET1,01H
+1916	0x0355	0x1852	   1916: 	SUB	CMP_EXIT_EMER0
+1917	0x0356	0x789e	   1917: 	LDI	CHN1_FINAL_RET2,01H
+1918	0x0357	0x1053	   1918: 	SBC	CMP_EXIT_EMER1
+1919			   
+1920	0x0358	0x76c1	   1920: 	ANDIM	FLAG_OCCUPIED,	1101B	;释放对通道1最终结果的锁定
+1921			   
+1922			   1922: 	;BNC	SELF_CHK_PROCESS_END	;如果电池还未耗尽，则跳转
+1923	0x0359	0xe37a	   1923: 	JMP	SELF_CHK_PROCESS_END	;如果电池还未耗尽，则跳转
+1924			   
+1925			   
+1926	0x035a	0x544f	   1926: 	SBI	CNT0_EMERGENCY,	08H	;和30分钟比较(0x708)
+1927	0x035b	0x780e	   1927: 	LDI	TBR,		00H
+1928	0x035c	0x1050	   1928: 	SBC	CNT1_EMERGENCY
+1929	0x035d	0x7b8e	   1929: 	LDI	TBR,		07H
+1930	0x035e	0x1051	   1930: 	SBC	CNT2_EMERGENCY	
+1931			   
+1932	0x035f	0x9b61	   1932: 	BC	SCP_ARRIVE_30MIN
+1933			   
+1934	0x0360	0x6a5c	   1934: 	LDA 	CHN1	
+1935			   1935: 	
+1936			   1936: ;---------------------------------------------------------------------------
+1937			   
+1938			   1938: SCP_ARRIVE_30MIN:
+1939	0x0361	0x7720	   1939: 	ANDIM	PWMC0,		1110B	;关闭PWM0输出
+1940	0x0362	0x7832	   1940: 	LDI	SELF_STATE,	0000B	;清年检标志位
+1941	0x0363	0x75e6	   1941: 	ANDIM	GREEN_FLASH,	1011B	;让绿灯停止以3HZ的频率闪烁
+1942	0x0364	0x73b3	   1942: 	ANDIM	ALREADY_ENTER,	0111B	;清已经进入手动年检标志位	
+1943			   
+1944	0x0365	0x564f	   1944: 	SBI	CNT0_EMERGENCY,	0CH	;和5分钟比较(0x12C)
+1945	0x0366	0x790e	   1945: 	LDI	TBR,		02H
+1946	0x0367	0x1050	   1946: 	SBC	CNT1_EMERGENCY
+1947	0x0368	0x788e	   1947: 	LDI	TBR,		01H
+1948	0x0369	0x1051	   1948: 	SBC	CNT2_EMERGENCY
+1949			   
+1950	0x036a	0x8b74	   1950: 	BNC	YEAR_LESS_5_MINUTE	;应急时长小于5分钟
+1951			   
+1952	0x036b	0x544f	   1952: 	SBI	CNT0_EMERGENCY,	08H	;和30分钟比较(0x708)
+1953	0x036c	0x780e	   1953: 	LDI	TBR,		00H
+1954	0x036d	0x1050	   1954: 	SBC	CNT1_EMERGENCY
+1955	0x036e	0x7b8e	   1955: 	LDI	TBR,		07H
+1956	0x036f	0x1051	   1956: 	SBC	CNT2_EMERGENCY
+1957			   
+1958	0x0370	0x8b77	   1958: 	BNC	YEAR_LESS_30_MINUTE	;应急时长小于30分钟
+1959			   
+1960			   1960: YEAR_MORE_30_MINUTE:			;应急时长大于30分钟
+1961	0x0371	0x6a4e	   1961: 	ORIM	DURATION_EMER,	0100B
+1962	0x0372	0xc1e1	   1962: 	CALL	RE_CALC_TIME		;发生了应急放电事件，重新计算待充电时长
+1963	0x0373	0xe37a	   1963: 	JMP	SELF_CHK_PROCESS_END
+1964			   
+1965			   1965: YEAR_LESS_5_MINUTE:
+1966	0x0374	0x68ce	   1966: 	ORIM	DURATION_EMER,	0001B
+1967	0x0375	0xc1e1	   1967: 	CALL	RE_CALC_TIME		;发生了应急放电事件，重新计算待充电时长
+1968	0x0376	0xe37a	   1968: 	JMP	SELF_CHK_PROCESS_END
+1969			   1969: 	
+1970			   1970: YEAR_LESS_30_MINUTE:
+1971	0x0377	0x694e	   1971: 	ORIM	DURATION_EMER,	0010B
+1972	0x0378	0xc1e1	   1972: 	CALL	RE_CALC_TIME		;发生了应急放电事件，重新计算待充电时长
+1973	0x0379	0xe37a	   1973: 	JMP	SELF_CHK_PROCESS_END
+1974			   1974: 	
+1975			   1975: ;---------------------------------------------------------------------------
+1976			   1976: 	
+1977			   1977: SELF_CHK_PROCESS_END:
+1978	0x037a	0xd400	   1978: 	RTNI
+1979			   
+1980			   
+1981			   
+1982			   1982: ;************************************************************
+1983			   1983: ; 延时5 毫秒子程序
+1984			   1984: ;************************************************************
+1985			   1985: DELAY_5MS:
+1986	0x037b	0x79f1	   1986: 	LDI 	DELAY_TIMER2,	03H 	;设置初始值
+1987	0x037c	0x79f2	   1987: 	LDI 	DELAY_TIMER1,	03H
+1988	0x037d	0x7e73	   1988: 	LDI 	DELAY_TIMER0,	0CH
+1989			   
+1990			   1990: DELAY_5MS_LOOP:
+1991	0x037e	0x58f3	   1991: 	SBIM 	DELAY_TIMER0,	01H 	;每次减1
+1992	0x037f	0x7874	   1992: 	LDI 	CLEAR_AC,	00H
+1993	0x0380	0x1472	   1993: 	SBCM 	DELAY_TIMER1,	00H
+1994	0x0381	0x7874	   1994: 	LDI 	CLEAR_AC,	00H
+1995	0x0382	0x1471	   1995: 	SBCM 	DELAY_TIMER2,	00H
+1996	0x0383	0x9b7e	   1996: 	BC 	DELAY_5MS_LOOP
+1997			   1997: 	
+1998	0x0384	0xd400	   1998: 	RTNI
+1999			   
+2000			   
+2001			   2001: ;*******************************************
+2002			   2002: ; 子程序: CAL_CHN0_ADCDATA
+2003			   2003: ; 描述: 防脉冲平均滤波法（N=4，去一个最大值和一个最小值，剩下两个求平均值）
+2004			   2004: ;*******************************************
+2005			   2005: CAL_CHN0_ADCDATA:
+2006	0x0385	0x40c1	   2006: 	ADI	FLAG_OCCUPIED,		0001B
+2007	0x0386	0xa388	   2007: 	BA0	CAL_CHN0_AD_MIN01
+2008	0x0387	0xe418	   2008: 	JMP	CAL_CHN0_ADCDATA_END		;正在使用转换结果
+2009			   
+2010			   2010: ;----------------------------
+2011			   2011: ;寻找最小值
+2012			   2012: CAL_CHN0_AD_MIN01:	
+2013	0x0388	0x3881	   2013: 	LDA 	CHN0_RET1_BAK0,		01H
+2014	0x0389	0x1884	   2014: 	SUB 	CHN0_RET1_BAK1,		01H
+2015	0x038a	0x3882	   2015: 	LDA 	CHN0_RET2_BAK0,		01H
+2016	0x038b	0x1085	   2016: 	SBC 	CHN0_RET2_BAK1,		01H
+2017	0x038c	0x9b9e	   2017: 	BC 	CAL_CHN0_AD_MIN02 		;D0<D1	
+2018			   
+2019			   2019: CAL_CHN0_AD_MIN12:
+2020	0x038d	0x3884	   2020: 	LDA 	CHN0_RET1_BAK1,		01H
+2021	0x038e	0x1887	   2021: 	SUB 	CHN0_RET1_BAK2,		01H
+2022	0x038f	0x3885	   2022: 	LDA 	CHN0_RET2_BAK1,		01H
+2023	0x0390	0x1088	   2023: 	SBC 	CHN0_RET2_BAK2,		01H
+2024	0x0391	0x9b98	   2024: 	BC 	CAL_CHN0_AD_MIN13 		;D1<D2
+2025			   
+2026			   2026: CAL_CHN0_AD_MIN23:
+2027	0x0392	0x3887	   2027: 	LDA 	CHN0_RET1_BAK2,		01H
+2028	0x0393	0x188a	   2028: 	SUB 	CHN0_RET1_BAK3,		01H
+2029	0x0394	0x3888	   2029: 	LDA 	CHN0_RET2_BAK2,		01H
+2030	0x0395	0x108b	   2030: 	SBC 	CHN0_RET2_BAK3,		01H
+2031	0x0396	0x9bb4	   2031: 	BC 	CAL_CHN0_AD_MIN2 		;D2<D3
+2032			   2032: 	;D3<D2
+2033	0x0397	0xe3b9	   2033: 	JMP 	CAL_CHN0_AD_MIN3
+2034			   
+2035			   2035: CAL_CHN0_AD_MIN13:
+2036	0x0398	0x3884	   2036: 	LDA 	CHN0_RET1_BAK1,		01H
+2037	0x0399	0x188a	   2037: 	SUB 	CHN0_RET1_BAK3,		01H
+2038	0x039a	0x3885	   2038: 	LDA 	CHN0_RET2_BAK1,		01H
+2039	0x039b	0x108b	   2039: 	SBC 	CHN0_RET2_BAK3,		01H
+2040	0x039c	0x9baf	   2040: 	BC 	CAL_CHN0_AD_MIN1 		;D1<D3
+2041			   2041: 	;D3<D1
+2042	0x039d	0xe3b9	   2042: 	JMP 	CAL_CHN0_AD_MIN3
+2043			   
+2044			   2044: ;D0<D1
+2045			   2045: CAL_CHN0_AD_MIN02:
+2046	0x039e	0x3881	   2046: 	LDA 	CHN0_RET1_BAK0,		01H
+2047	0x039f	0x1887	   2047: 	SUB 	CHN0_RET1_BAK2,		01H
+2048	0x03a0	0x3882	   2048: 	LDA 	CHN0_RET2_BAK0,		01H
+2049	0x03a1	0x1088	   2049: 	SBC 	CHN0_RET2_BAK2,		01H
+2050	0x03a2	0x9ba4	   2050: 	BC 	CAL_CHN0_AD_MIN03 		;D0<D2
+2051			   2051: 	;D3<D1
+2052	0x03a3	0xe392	   2052: 	JMP 	CAL_CHN0_AD_MIN23
+2053			   
+2054			   2054: ;D0<D2
+2055			   2055: CAL_CHN0_AD_MIN03:
+2056	0x03a4	0x3881	   2056: 	LDA 	CHN0_RET1_BAK0,		01H
+2057	0x03a5	0x188a	   2057: 	SUB 	CHN0_RET1_BAK3,		01H
+2058	0x03a6	0x3882	   2058: 	LDA 	CHN0_RET2_BAK0,		01H
+2059	0x03a7	0x108b	   2059: 	SBC 	CHN0_RET2_BAK3,		01H
+2060	0x03a8	0x9baa	   2060: 	BC 	CAL_CHN0_AD_MIN0 		;D0<D3
+2061			   2061: 	;D3<D0
+2062	0x03a9	0xe3b9	   2062: 	JMP 	CAL_CHN0_AD_MIN3
+2063			   
+2064			   2064: ;-----------------------
+2065			   2065: ;将最小值清零
+2066			   2066: CAL_CHN0_AD_MIN0:
+2067	0x03aa	0x780e	   2067: 	LDI 	TBR,			00H
+2068	0x03ab	0x3c80	   2068: 	STA 	CHN0_RET0_BAK0,		01H
+2069	0x03ac	0x3c81	   2069: 	STA 	CHN0_RET1_BAK0,		01H
+2070	0x03ad	0x3c82	   2070: 	STA 	CHN0_RET2_BAK0,		01H
+2071	0x03ae	0xe3be	   2071: 	JMP 	CAL_CHN0_AD_MAX01
+2072			   
+2073			   2073: CAL_CHN0_AD_MIN1:
+2074	0x03af	0x780e	   2074: 	LDI 	TBR,			00H
+2075	0x03b0	0x3c83	   2075: 	STA 	CHN0_RET0_BAK1,		01H
+2076	0x03b1	0x3c84	   2076: 	STA 	CHN0_RET1_BAK1,		01H
+2077	0x03b2	0x3c85	   2077: 	STA 	CHN0_RET2_BAK1,		01H
+2078	0x03b3	0xe3be	   2078: 	JMP 	CAL_CHN0_AD_MAX01
+2079			   
+2080			   2080: CAL_CHN0_AD_MIN2:
+2081	0x03b4	0x780e	   2081: 	LDI 	TBR,			00H
+2082	0x03b5	0x3c86	   2082: 	STA 	CHN0_RET0_BAK2,		01H
+2083	0x03b6	0x3c87	   2083: 	STA 	CHN0_RET1_BAK2,		01H
+2084	0x03b7	0x3c88	   2084: 	STA 	CHN0_RET2_BAK2,		01H
+2085	0x03b8	0xe3be	   2085: 	JMP 	CAL_CHN0_AD_MAX01
+2086			   
+2087			   2087: CAL_CHN0_AD_MIN3:
+2088	0x03b9	0x780e	   2088: 	LDI 	TBR,			00H
+2089	0x03ba	0x3c89	   2089: 	STA 	CHN0_RET0_BAK3,		01H
+2090	0x03bb	0x3c8a	   2090: 	STA 	CHN0_RET1_BAK3,		01H
+2091	0x03bc	0x3c8b	   2091: 	STA 	CHN0_RET2_BAK3,		01H
+2092	0x03bd	0xe3be	   2092: 	JMP 	CAL_CHN0_AD_MAX01
+2093			   
+2094			   2094: ;----------------------------
+2095			   2095: ;寻找最大值
+2096			   2096: CAL_CHN0_AD_MAX01:
+2097	0x03be	0x3881	   2097: 	LDA 	CHN0_RET1_BAK0,		01H
+2098	0x03bf	0x1884	   2098: 	SUB 	CHN0_RET1_BAK1,		01H
+2099	0x03c0	0x3882	   2099: 	LDA 	CHN0_RET2_BAK0,		01H
+2100	0x03c1	0x1085	   2100: 	SBC 	CHN0_RET2_BAK1,		01H
+2101	0x03c2	0x9bd4	   2101: 	BC 	CAL_CHN0_AD_MAX12 		;D1>D0
+2102			   
+2103			   2103: ;D0>D1
+2104			   2104: CAL_CHN0_AD_MAX02:
+2105	0x03c3	0x3881	   2105: 	LDA 	CHN0_RET1_BAK0,		01H
+2106	0x03c4	0x1887	   2106: 	SUB 	CHN0_RET1_BAK2,		01H
+2107	0x03c5	0x3882	   2107: 	LDA 	CHN0_RET2_BAK0,		01H
+2108	0x03c6	0x1088	   2108: 	SBC 	CHN0_RET2_BAK2,		01H
+2109	0x03c7	0x9bce	   2109: 	BC 	CAL_CHN0_AD_MAX23 		;D2>D0
+2110			   
+2111			   2111: ;D0>D2
+2112			   2112: CAL_CHN0_AD_MAX03:
+2113	0x03c8	0x3881	   2113: 	LDA 	CHN0_RET1_BAK0,		01H
+2114	0x03c9	0x188a	   2114: 	SUB 	CHN0_RET1_BAK3,		01H
+2115	0x03ca	0x3882	   2115: 	LDA 	CHN0_RET2_BAK0,		01H
+2116	0x03cb	0x108b	   2116: 	SBC 	CHN0_RET2_BAK3,		01H
+2117	0x03cc	0x9bee	   2117: 	BC 	CAL_CHN0_AD_MAX3 		;D3>D0
+2118			   2118: 	;D0>D3
+2119	0x03cd	0xe3df	   2119: 	JMP 	CAL_CHN0_AD_MAX0
+2120			   
+2121			   2121: ;D2>D0
+2122			   2122: CAL_CHN0_AD_MAX23:
+2123	0x03ce	0x3887	   2123: 	LDA 	CHN0_RET1_BAK2,		01H
+2124	0x03cf	0x188a	   2124: 	SUB 	CHN0_RET1_BAK3,		01H
+2125	0x03d0	0x3888	   2125: 	LDA 	CHN0_RET2_BAK2,		01H
+2126	0x03d1	0x108b	   2126: 	SBC 	CHN0_RET2_BAK3,		01H
+2127	0x03d2	0x9bee	   2127: 	BC 	CAL_CHN0_AD_MAX3 		;D3>D2
+2128			   2128: 	;D2>D3
+2129	0x03d3	0xe3e9	   2129: 	JMP 	CAL_CHN0_AD_MAX2
+2130			   
+2131			   2131: ;D1>D0
+2132			   2132: CAL_CHN0_AD_MAX12:
+2133	0x03d4	0x3884	   2133: 	LDA 	CHN0_RET1_BAK1,		01H
+2134	0x03d5	0x1887	   2134: 	SUB 	CHN0_RET1_BAK2,		01H
+2135	0x03d6	0x3885	   2135: 	LDA 	CHN0_RET2_BAK1,		01H
+2136	0x03d7	0x1088	   2136: 	SBC 	CHN0_RET2_BAK2,		01H
+2137	0x03d8	0x9bce	   2137: 	BC 	CAL_CHN0_AD_MAX23 		;D2>D1
+2138			   
+2139			   2139: ;D1>D2
+2140			   2140: CAL_CHN0_AD_MAX13:
+2141	0x03d9	0x3884	   2141: 	LDA 	CHN0_RET1_BAK1,		01H
+2142	0x03da	0x188a	   2142: 	SUB 	CHN0_RET1_BAK3,		01H
+2143	0x03db	0x3885	   2143: 	LDA 	CHN0_RET2_BAK1,		01H
+2144	0x03dc	0x108b	   2144: 	SBC 	CHN0_RET2_BAK3,		01H
+2145	0x03dd	0x9bee	   2145: 	BC 	CAL_CHN0_AD_MAX3 		;D3>D1
+2146			   2146: 	;D1>D3
+2147	0x03de	0xe3e4	   2147: 	JMP 	CAL_CHN0_AD_MAX1
+2148			   
+2149			   2149: ;-----------------------
+2150			   2150: ;将最大值清零
+2151			   2151: CAL_CHN0_AD_MAX0:
+2152	0x03df	0x780e	   2152: 	LDI 	TBR,			00H
+2153	0x03e0	0x3c80	   2153: 	STA 	CHN0_RET0_BAK0,		01H
+2154	0x03e1	0x3c81	   2154: 	STA 	CHN0_RET1_BAK0,		01H
+2155	0x03e2	0x3c82	   2155: 	STA 	CHN0_RET2_BAK0,		01H
+2156	0x03e3	0xe3f3	   2156: 	JMP 	CAL_CHN0_AD_ADD
+2157			   
+2158			   2158: CAL_CHN0_AD_MAX1:
+2159	0x03e4	0x780e	   2159: 	LDI 	TBR,			00H
+2160	0x03e5	0x3c83	   2160: 	STA 	CHN0_RET0_BAK1,		01H
+2161	0x03e6	0x3c84	   2161: 	STA 	CHN0_RET1_BAK1,		01H
+2162	0x03e7	0x3c85	   2162: 	STA 	CHN0_RET2_BAK1,		01H
+2163	0x03e8	0xe3f3	   2163: 	JMP 	CAL_CHN0_AD_ADD
+2164			   
+2165			   2165: CAL_CHN0_AD_MAX2:
+2166	0x03e9	0x780e	   2166: 	LDI 	TBR,			00H
+2167	0x03ea	0x3c86	   2167: 	STA 	CHN0_RET0_BAK2,		01H
+2168	0x03eb	0x3c87	   2168: 	STA 	CHN0_RET1_BAK2,		01H
+2169	0x03ec	0x3c88	   2169: 	STA 	CHN0_RET2_BAK2,		01H
+2170	0x03ed	0xe3f3	   2170: 	JMP 	CAL_CHN0_AD_ADD
+2171			   
+2172			   2172: CAL_CHN0_AD_MAX3:
+2173	0x03ee	0x780e	   2173: 	LDI 	TBR,			00H
+2174	0x03ef	0x3c89	   2174: 	STA 	CHN0_RET0_BAK3,		01H
+2175	0x03f0	0x3c8a	   2175: 	STA 	CHN0_RET1_BAK3,		01H
+2176	0x03f1	0x3c8b	   2176: 	STA 	CHN0_RET2_BAK3,		01H
+2177	0x03f2	0xe3f3	   2177: 	JMP 	CAL_CHN0_AD_ADD
+2178			   
+2179			   2179: ;----------------------------
+2180			   2180: ;计算总和并存放在CHN0_RET0_BAK3,CHN0_RET1_BAK3 和CHN0_RET2_BAK3（包括两个被清零的）
+2181			   2181: CAL_CHN0_AD_ADD:
+2182	0x03f3	0x7840	   2182: 	LDI 	TEMP_SUM_CY,		00H
+2183			   
+2184			   2184: 	;D0 + D1
+2185			   2185: 	;LDA 	CHN0_RET0_BAK0,		01H
+2186			   2186: 	;ADDM 	CHN0_RET0_BAK1,		01H
+2187	0x03f4	0x3881	   2187: 	LDA 	CHN0_RET1_BAK0,		01H
+2188	0x03f5	0x0c84	   2188: 	ADDM 	CHN0_RET1_BAK1,		01H
+2189	0x03f6	0x3882	   2189: 	LDA 	CHN0_RET2_BAK0,		01H
+2190	0x03f7	0x0485	   2190: 	ADCM 	CHN0_RET2_BAK1,		01H
+2191	0x03f8	0x780e	   2191: 	LDI 	TBR,			00H
+2192	0x03f9	0x0440	   2192: 	ADCM 	TEMP_SUM_CY
+2193			   
+2194			   2194: 	;+ D2
+2195			   2195: 	;LDA 	CHN0_RET0_BAK1,		01H
+2196			   2196: 	;ADDM 	CHN0_RET0_BAK2,		01H
+2197	0x03fa	0x3884	   2197: 	LDA 	CHN0_RET1_BAK1,		01H
+2198	0x03fb	0x0c87	   2198: 	ADDM 	CHN0_RET1_BAK2,		01H
+2199	0x03fc	0x3885	   2199: 	LDA 	CHN0_RET2_BAK1,		01H
+2200	0x03fd	0x0488	   2200: 	ADCM 	CHN0_RET2_BAK2,		01H
+2201	0x03fe	0x780e	   2201: 	LDI 	TBR,			00H
+2202	0x03ff	0x0440	   2202: 	ADCM 	TEMP_SUM_CY
+2203			   
+2204			   2204: 	;+ D3
+2205			   2205: 	;LDA 	CHN0_RET0_BAK2,		01H
+2206			   2206: 	;ADDM 	CHN0_RET0_BAK3,		01H
+2207	0x0400	0x3887	   2207: 	LDA 	CHN0_RET1_BAK2,		01H
+2208	0x0401	0x0c8a	   2208: 	ADDM 	CHN0_RET1_BAK3,		01H
+2209	0x0402	0x3888	   2209: 	LDA 	CHN0_RET2_BAK2,		01H
+2210	0x0403	0x048b	   2210: 	ADCM 	CHN0_RET2_BAK3,		01H
+2211	0x0404	0x780e	   2211: 	LDI 	TBR,			00H
+2212	0x0405	0x0440	   2212: 	ADCM 	TEMP_SUM_CY
+2213			   
+2214			   2214: ;----------------------------
+2215			   2215: ;总和除以2，得到平均值，存放在CHN0_FINAL_RET0(),CHN0_FINAL_RET1 和CHN0_FINAL_RET2
+2216			   2216: CAL_CHN0_AD_DIV:
+2217			   2217: 	;LDA 	CHN0_RET0_BAK3,		01H
+2218			   2218: 	;SHR
+2219			   2219: 	;STA 	CHN0_RET0_BAK3,		01H
+2220			   2220: 	
+2221	0x0406	0x388a	   2221: 	LDA 	CHN0_RET1_BAK3,		01H
+2222	0x0407	0xf000	   2222: 	SHR
+2223	0x0408	0x3c8a	   2223: 	STA 	CHN0_RET1_BAK3,		01H
+2224			   2224: 	
+2225			   2225: 	;BNC 	$+3
+2226			   2226: 	;LDI 	TBR,			0010B
+2227			   2227: 	;ORM 	CHN0_RET0_BAK3
+2228			   
+2229	0x0409	0x388b	   2229: 	LDA 	CHN0_RET2_BAK3,		01H
+2230	0x040a	0xf000	   2230: 	SHR
+2231	0x040b	0x3c8b	   2231: 	STA 	CHN0_RET2_BAK3,		01H
+2232			   2232: 	
+2233	0x040c	0x8c0f	   2233: 	BNC 	$+3
+2234	0x040d	0x7c0e	   2234: 	LDI 	TBR,			1000B
+2235	0x040e	0x2c8a	   2235: 	ORM 	CHN0_RET1_BAK3,		01H
+2236			   
+2237	0x040f	0x3840	   2237: 	LDA 	TEMP_SUM_CY
+2238	0x0410	0xf000	   2238: 	SHR
+2239	0x0411	0x8c14	   2239: 	BNC 	$+3
+2240	0x0412	0x7c0e	   2240: 	LDI 	TBR,			1000B
+2241	0x0413	0x2c8b	   2241: 	ORM 	CHN0_RET2_BAK3,		01H
+2242			   
+2243			   
+2244			   2244: 	;LDA	CHN0_RET0_BAK3,		01H
+2245			   2245: 	;STA	CHN0_FINAL_RET0,		01H
+2246	0x0414	0x388a	   2246: 	LDA	CHN0_RET1_BAK3,		01H
+2247	0x0415	0x3c8d	   2247: 	STA	CHN0_FINAL_RET1,	01H
+2248	0x0416	0x388b	   2248: 	LDA	CHN0_RET2_BAK3,		01H
+2249	0x0417	0x3c8e	   2249: 	STA	CHN0_FINAL_RET2,	01H
+2250			   
+2251			   2251: ;----------------------------
+2252			   2252: ;调整为CHN0_FINAL_RET0存放低4位，CHN0_FINAL_RET1存放中4位，CHN0_FINAL_RET2存放高2位
+2253			   2253: 	;LDA 	CHN0_FINAL_RET1,		01H
+2254			   2254: 	;SHR
+2255			   2255: 	;STA 	CHN0_FINAL_RET1,		01H
+2256			   
+2257			   2257: 	;BNC 	$+3
+2258			   2258: 	;LDI 	TBR,			0100B
+2259			   2259: 	;ORM 	CHN0_FINAL_RET0,		01H
+2260			   
+2261			   2261: 	;LDA 	CHN0_FINAL_RET1,		01H
+2262			   2262: 	;SHR
+2263			   2263: 	;STA 	CHN0_FINAL_RET1,		01H	
+2264			   
+2265			   2265: 	;BNC 	$+3
+2266			   2266: 	;LDI 	TBR,			1000B
+2267			   2267: 	;ORM 	CHN0_FINAL_RET0,		01H
+2268			   
+2269			   
+2270			   2270: 	;LDA 	CHN0_FINAL_RET2,		01H
+2271			   2271: 	;SHR
+2272			   2272: 	;STA 	CHN0_FINAL_RET2,		01H	
+2273			   
+2274			   2274: 	;BNC 	$+3
+2275			   2275: 	;LDI 	TBR,			0100B
+2276			   2276: 	;ORM 	CHN0_FINAL_RET1,		01H
+2277			   
+2278			   2278: 	;LDA 	CHN0_FINAL_RET2,		01H
+2279			   2279: 	;SHR
+2280			   2280: 	;STA 	CHN0_FINAL_RET2,		01H	
+2281			   
+2282			   2282: 	;BNC 	$+3
+2283			   2283: 	;LDI 	TBR,			1000B
+2284			   2284: 	;ORM 	CHN0_FINAL_RET1,		01H
+2285			   2285: 	
+2286			   2286: ;----------------------------
+2287			   2287: CAL_CHN0_ADCDATA_END:	
+2288			   
+2289	0x0418	0xd400	   2289: 	RTNI
+2290			   
+2291			   2291: ;*******************************************
+2292			   2292: ; 子程序: CAL_CHN1_ADCDATA
+2293			   2293: ; 描述: 防脉冲平均滤波法（N=4，去一个最大值和一个最小值，剩下两个求平均值）
+2294			   2294: ;*******************************************
+2295			   2295: CAL_CHN1_ADCDATA:
+2296	0x0419	0x4141	   2296: 	ADI	FLAG_OCCUPIED,		0010B
+2297	0x041a	0xac1c	   2297: 	BA1	CAL_CHN1_AD_MIN01
+2298	0x041b	0xe4ac	   2298: 	JMP	CAL_CHN1_ADCDATA_END		;正在使用转换结果
+2299			   
+2300			   2300: ;----------------------------
+2301			   2301: ;寻找最小值
+2302			   2302: CAL_CHN1_AD_MIN01:	
+2303	0x041c	0x3891	   2303: 	LDA 	CHN1_RET1_BAK0,		01H
+2304	0x041d	0x1894	   2304: 	SUB 	CHN1_RET1_BAK1,		01H
+2305	0x041e	0x3892	   2305: 	LDA 	CHN1_RET2_BAK0,		01H
+2306	0x041f	0x1095	   2306: 	SBC 	CHN1_RET2_BAK1,		01H
+2307	0x0420	0x9c32	   2307: 	BC 	CAL_CHN1_AD_MIN02 		;D0<D1	
+2308			   
+2309			   2309: CAL_CHN1_AD_MIN12:
+2310	0x0421	0x3894	   2310: 	LDA 	CHN1_RET1_BAK1,		01H
+2311	0x0422	0x1897	   2311: 	SUB 	CHN1_RET1_BAK2,		01H
+2312	0x0423	0x3895	   2312: 	LDA 	CHN1_RET2_BAK1,		01H
+2313	0x0424	0x1098	   2313: 	SBC 	CHN1_RET2_BAK2,		01H
+2314	0x0425	0x9c2c	   2314: 	BC 	CAL_CHN1_AD_MIN13 		;D1<D2
+2315			   
+2316			   2316: CAL_CHN1_AD_MIN23:
+2317	0x0426	0x3897	   2317: AD_MAX23 		;D2	
+2318	0x0427	0x189a	   2318: 	SUB 	CHN1_RET1_BAK3,		01H
+2319	0x0428	0x3898	   2319: 	LDA 	CHN1_RET2_BAK2,		01H
+2320	0x0429	0x109b	   2320: 	SBC 	CHN1_RET2_BAK3,		01H
+2321	0x042a	0x9c48	   2321: 	BC 	CAL_CHN1_AD_MIN2 		;D2<D3
+2322			   2322: 	;D3<D2
+2323	0x042b	0xe44d	   2323: 	JMP 	CAL_CHN1_AD_MIN3
+2324			   
+2325			   2325: CAL_CHN1_AD_MIN13:
+2326	0x042c	0x3894	   2326: 	LDA 	CHN1_RET1_BAK1,		01H
+2327	0x042d	0x189a	   2327: 	SUB 	CHN1_RET1_BAK3,		01H
+2328	0x042e	0x3895	   2328: 	LDA 	CHN1_RET2_BAK1,		01H
+2329	0x042f	0x109b	   2329: 	SBC 	CHN1_RET2_BAK3,		01H
+2330	0x0430	0x9c43	   2330: 	BC 	CAL_CHN1_AD_MIN1 		;D1<D3
+2331			   2331: 	;D3<D1
+2332	0x0431	0xe44d	   2332: 	JMP 	CAL_CHN1_AD_MIN3
+2333			   
+2334			   2334: ;D0<D1
+2335			   2335: CAL_CHN1_AD_MIN02:
+2336	0x0432	0x3891	   2336: 	LDA 	CHN1_RET1_BAK0,		01H
+2337	0x0433	0x1897	   2337: 	SUB 	CHN1_RET1_BAK2,		01H
+2338	0x0434	0x3892	   2338: 	LDA 	CHN1_RET2_BAK0,		01H
+2339	0x0435	0x1098	   2339: 	SBC 	CHN1_RET2_BAK2,		01H
+2340	0x0436	0x9c38	   2340: 	BC 	CAL_CHN1_AD_MIN03 		;D0<D2
+2341			   2341: 	;D3<D1
+2342	0x0437	0xe426	   2342: 	JMP 	CAL_CHN1_AD_MIN23
+2343			   
+2344			   2344: ;D0<D2
+2345			   2345: CAL_CHN1_AD_MIN03:
+2346	0x0438	0x3891	   2346: 	LDA 	CHN1_RET1_BAK0,		01H
+2347	0x0439	0x189a	   2347: 	SUB 	CHN1_RET1_BAK3,		01H
+2348	0x043a	0x3892	   2348: 	LDA 	CHN1_RET2_BAK0,		01H
+2349	0x043b	0x109b	   2349: 	SBC 	CHN1_RET2_BAK3,		01H
+2350	0x043c	0x9c3e	   2350: 	BC 	CAL_CHN1_AD_MIN0 		;D0<D3
+2351			   2351: 	;D3<D0
+2352	0x043d	0xe44d	   2352: 	JMP 	CAL_CHN1_AD_MIN3
+2353			   
+2354			   2354: ;-----------------------
+2355			   2355: ;将最小值清零
+2356			   2356: CAL_CHN1_AD_MIN0:
+2357	0x043e	0x780e	   2357: 	LDI 	TBR,			00H
+2358	0x043f	0x3c90	   2358: 	STA 	CHN1_RET0_BAK0,		01H
+2359	0x0440	0x3c91	   2359: 	STA 	CHN1_RET1_BAK0,		01H
+2360	0x0441	0x3c92	   2360: 	STA 	CHN1_RET2_BAK0,		01H
+2361	0x0442	0xe452	   2361: 	JMP 	CAL_CHN1_AD_MAX01
+2362			   
+2363			   2363: CAL_CHN1_AD_MIN1:
+2364	0x0443	0x780e	   2364: 	LDI 	TBR,			00H
+2365	0x0444	0x3c93	   2365: 	STA 	CHN1_RET0_BAK1,		01H
+2366	0x0445	0x3c94	   2366: 	STA 	CHN1_RET1_BAK1,		01H
+2367	0x0446	0x3c95	   2367: 	STA 	CHN1_RET2_BAK1,		01H
+2368	0x0447	0xe452	   2368: 	JMP 	CAL_CHN1_AD_MAX01
+2369			   
+2370			   2370: CAL_CHN1_AD_MIN2:
+2371	0x0448	0x780e	   2371: 	LDI 	TBR,			00H
+2372	0x0449	0x3c96	   2372: 	STA 	CHN1_RET0_BAK2,		01H
+2373	0x044a	0x3c97	   2373: 	STA 	CHN1_RET1_BAK2,		01H
+2374	0x044b	0x3c98	   2374: 	STA 	CHN1_RET2_BAK2,		01H
+2375	0x044c	0xe452	   2375: 	JMP 	CAL_CHN1_AD_MAX01
+2376			   
+2377			   2377: CAL_CHN1_AD_MIN3:
+2378	0x044d	0x780e	   2378: 	LDI 	TBR,			00H
+2379	0x044e	0x3c99	   2379: 	STA 	CHN1_RET0_BAK3,		01H
+2380	0x044f	0x3c9a	   2380: 	STA 	CHN1_RET1_BAK3,		01H
+2381	0x0450	0x3c9b	   2381: 	STA 	CHN1_RET2_BAK3,		01H
+2382	0x0451	0xe452	   2382: 	JMP 	CAL_CHN1_AD_MAX01
+2383			   
+2384			   2384: ;----------------------------
+2385			   2385: ;寻找最大值
+2386			   2386: CAL_CHN1_AD_MAX01:
+2387	0x0452	0x3891	   2387: 	LDA 	CHN1_RET1_BAK0,		01H
+2388	0x0453	0x1894	   2388: 	SUB 	CHN1_RET1_BAK1,		01H
+2389	0x0454	0x3892	   2389: 	LDA 	CHN1_RET2_BAK0,		01H
+2390	0x0455	0x1095	   2390: 	SBC 	CHN1_RET2_BAK1,		01H
+2391	0x0456	0x9c68	   2391: 	BC 	CAL_CHN1_AD_MAX12 		;D1>D0
+2392			   
+2393			   2393: ;D0>D1
+2394			   2394: CAL_CHN1_AD_MAX02:
+2395	0x0457	0x3891	   2395: 	LDA 	CHN1_RET1_BAK0,		01H
+2396	0x0458	0x1897	   2396: 	SUB 	CHN1_RET1_BAK2,		01H
+2397	0x0459	0x3892	   2397: 	LDA 	CHN1_RET2_BAK0,		01H
+2398	0x045a	0x1098	   2398: 	SBC 	CHN1_RET2_BAK2,		01H
+2399	0x045b	0x9c62	   2399: 	BC 	CAL_CHN1_AD_MAX23 		;D2>D0
+2400			   
+2401			   2401: ;D0>D2
+2402			   2402: CAL_CHN1_AD_MAX03:
+2403	0x045c	0x3891	   2403: 	LDA 	CHN1_RET1_BAK0,		01H
+2404	0x045d	0x189a	   2404: 	SUB 	CHN1_RET1_BAK3,		01H
+2405	0x045e	0x3892	   2405: 	LDA 	CHN1_RET2_BAK0,		01H
+2406	0x045f	0x109b	   2406: 	SBC 	CHN1_RET2_BAK3,		01H
+2407	0x0460	0x9c82	   2407: 	BC 	CAL_CHN1_AD_MAX3 		;D3>D0
+2408			   2408: 	;D0>D3
+2409	0x0461	0xe473	   2409: 	JMP 	CAL_CHN1_AD_MAX0
+2410			   
+2411			   2411: ;D2>D0
+2412			   2412: CAL_CHN1_AD_MAX23:
+2413	0x0462	0x3897	   2413: 	LDA 	CHN1_RET1_BAK2,		01H
+2414	0x0463	0x189a	   2414: 	SUB 	CHN1_RET1_BAK3,		01H
+2415	0x0464	0x3898	   2415: 	LDA 	CHN1_RET2_BAK2,		01H
+2416	0x0465	0x109b	   2416: 	SBC 	CHN1_RET2_BAK3,		01H
+2417	0x0466	0x9c82	   2417: 	BC 	CAL_CHN1_AD_MAX3 		;D3>D2
+2418			   2418: 	;D2>D3
+2419	0x0467	0xe47d	   2419: 	JMP 	CAL_CHN1_AD_MAX2
+2420			   
+2421			   2421: ;D1>D0
+2422			   2422: CAL_CHN1_AD_MAX12:
+2423	0x0468	0x3894	   2423: 	LDA 	CHN1_RET1_BAK1,		01H
+2424	0x0469	0x1897	   2424: 	SUB 	CHN1_RET1_BAK2,		01H
+2425	0x046a	0x3895	   2425: 	LDA 	CHN1_RET2_BAK1,		01H
+2426	0x046b	0x1098	   2426: 	SBC 	CHN1_RET2_BAK2,		01H
+2427	0x046c	0x9c62	   2427: 	BC 	CAL_CHN1_AD_MAX23 		;D2>D1
+2428			   
+2429			   2429: ;D1>D2
+2430			   2430: CAL_CHN1_AD_MAX13:
+2431	0x046d	0x3894	   2431: 	LDA 	CHN1_RET1_BAK1,		01H
+2432	0x046e	0x189a	   2432: 	SUB 	CHN1_RET1_BAK3,		01H
+2433	0x046f	0x3895	   2433: 	LDA 	CHN1_RET2_BAK1,		01H
+2434	0x0470	0x109b	   2434: 	SBC 	CHN1_RET2_BAK3,		01H
+2435	0x0471	0x9c82	   2435: 	BC 	CAL_CHN1_AD_MAX3 		;D3>D1
+2436			   2436: 	;D1>D3
+2437	0x0472	0xe478	   2437: 	JMP 	CAL_CHN1_AD_MAX1
+2438			   
+2439			   2439: ;-----------------------
+2440			   2440: ;将最大值清零
+2441			   2441: CAL_CHN1_AD_MAX0:
+2442	0x0473	0x780e	   2442: 	LDI 	TBR,			00H
+2443	0x0474	0x3c90	   2443: 	STA 	CHN1_RET0_BAK0,		01H
+2444	0x0475	0x3c91	   2444: 	STA 	CHN1_RET1_BAK0,		01H
+2445	0x0476	0x3c92	   2445: 	STA 	CHN1_RET2_BAK0,		01H
+2446	0x0477	0xe487	   2446: 	JMP 	CAL_CHN1_AD_ADD
+2447			   
+2448			   2448: CAL_CHN1_AD_MAX1:
+2449	0x0478	0x780e	   2449: 	LDI 	TBR,			00H
+2450	0x0479	0x3c93	   2450: 	STA 	CHN1_RET0_BAK1,		01H
+2451	0x047a	0x3c94	   2451: 	STA 	CHN1_RET1_BAK1,		01H
+2452	0x047b	0x3c95	   2452: 	STA 	CHN1_RET2_BAK1,		01H
+2453	0x047c	0xe487	   2453: 	JMP 	CAL_CHN1_AD_ADD
+2454			   
+2455			   2455: CAL_CHN1_AD_MAX2:
+2456	0x047d	0x780e	   2456: 	LDI 	TBR,			00H
+2457	0x047e	0x3c96	   2457: 	STA 	CHN1_RET0_BAK2,		01H
+2458	0x047f	0x3c97	   2458: 	STA 	CHN1_RET1_BAK2,		01H
+2459	0x0480	0x3c98	   2459: 	STA 	CHN1_RET2_BAK2,		01H
+2460	0x0481	0xe487	   2460: 	JMP 	CAL_CHN1_AD_ADD
+2461			   
+2462			   2462: CAL_CHN1_AD_MAX3:
+2463	0x0482	0x780e	   2463: 	LDI 	TBR,			00H
+2464	0x0483	0x3c99	   2464: 	STA 	CHN1_RET0_BAK3,		01H
+2465	0x0484	0x3c9a	   2465: 	STA 	CHN1_RET1_BAK3,		01H
+2466	0x0485	0x3c9b	   2466: 	STA 	CHN1_RET2_BAK3,		01H
+2467	0x0486	0xe487	   2467: 	JMP 	CAL_CHN1_AD_ADD
+2468			   
+2469			   2469: ;----------------------------
+2470			   2470: ;计算总和并存放在CHN1_RET0_BAK3,CHN1_RET1_BAK3 和CHN1_RET2_BAK3（包括两个被清零的）
+2471			   2471: CAL_CHN1_AD_ADD:
+2472	0x0487	0x7840	   2472: 	LDI 	TEMP_SUM_CY,		00H
+2473			   
+2474			   2474: 	;D0 + D1
+2475			   2475: 	;LDA 	CHN1_RET0_BAK0,		01H
+2476			   2476: 	;ADDM 	CHN1_RET0_BAK1,		01H
+2477	0x0488	0x3891	   2477: 	LDA 	CHN1_RET1_BAK0,		01H
+2478	0x0489	0x0c94	   2478: 	ADDM 	CHN1_RET1_BAK1,		01H
+2479	0x048a	0x3892	   2479: 	LDA 	CHN1_RET2_BAK0,		01H
+2480	0x048b	0x0495	   2480: 	ADCM 	CHN1_RET2_BAK1,		01H
+2481	0x048c	0x780e	   2481: 	LDI 	TBR,			00H
+2482	0x048d	0x0440	   2482: 	ADCM 	TEMP_SUM_CY
+2483			   
+2484			   2484: 	;+ D2
+2485			   2485: 	;LDA 	CHN1_RET0_BAK1,		01H
+2486			   2486: 	;ADDM 	CHN1_RET0_BAK2,		01H
+2487	0x048e	0x3894	   2487: 	LDA 	CHN1_RET1_BAK1,		01H
+2488	0x048f	0x0c97	   2488: 	ADDM 	CHN1_RET1_BAK2,		01H
+2489	0x0490	0x3895	   2489: 	LDA 	CHN1_RET2_BAK1,		01H
+2490	0x0491	0x0498	   2490: 	ADCM 	CHN1_RET2_BAK2,		01H
+2491	0x0492	0x780e	   2491: 	LDI 	TBR,			00H
+2492	0x0493	0x0440	   2492: 	ADCM 	TEMP_SUM_CY
+2493			   
+2494			   2494: 	;+ D3
+2495			   2495: 	;LDA 	CHN1_RET0_BAK2,		01H
+2496			   2496: 	;ADDM 	CHN1_RET0_BAK3,		01H
+2497	0x0494	0x3897	   2497: 	LDA 	CHN1_RET1_BAK2,		01H
+2498	0x0495	0x0c9a	   2498: 	ADDM 	CHN1_RET1_BAK3,		01H
+2499	0x0496	0x3898	   2499: 	LDA 	CHN1_RET2_BAK2,		01H
+2500	0x0497	0x049b	   2500: 	ADCM 	CHN1_RET2_BAK3,		01H
+2501	0x0498	0x780e	   2501: 	LDI 	TBR,			00H
+2502	0x0499	0x0440	   2502: 	ADCM 	TEMP_SUM_CY
+2503			   
+2504			   2504: ;----------------------------
+2505			   2505: ;总和除以2，得到平均值，存放在CHN1_FINAL_RET0(),CHN1_FINAL_RET1 和CHN1_FINAL_RET2
+2506			   2506: CAL_CHN1_AD_DIV:
+2507			   2507: 	;LDA 	CHN1_RET0_BAK3,		01H
+2508			   2508: 	;SHR
+2509			   2509: 	;STA 	CHN1_RET0_BAK3,		01H
+2510			   2510: 	
+2511	0x049a	0x389a	   2511: 	LDA 	CHN1_RET1_BAK3,		01H
+2512	0x049b	0xf000	   2512: 	SHR
+2513	0x049c	0x3c9a	   2513: 	STA 	CHN1_RET1_BAK3,		01H
+2514			   2514: 	
+2515			   2515: 	;BNC 	$+3
+2516			   2516: 	;LDI 	TBR,			0010B
+2517			   2517: 	;ORM 	CHN1_RET0_BAK3
+2518			   
+2519	0x049d	0x389b	   2519: 	LDA 	CHN1_RET2_BAK3,		01H
+2520	0x049e	0xf000	   2520: 	SHR
+2521	0x049f	0x3c9b	   2521: 	STA 	CHN1_RET2_BAK3,		01H
+2522			   2522: 	
+2523	0x04a0	0x8ca3	   2523: 	BNC 	$+3
+2524	0x04a1	0x7c0e	   2524: 	LDI 	TBR,			1000B
+2525	0x04a2	0x2c9a	   2525: 	ORM 	CHN1_RET1_BAK3,		01H
+2526			   
+2527	0x04a3	0x3840	   2527: 	LDA 	TEMP_SUM_CY
+2528	0x04a4	0xf000	   2528: 	SHR
+2529	0x04a5	0x8ca8	   2529: 	BNC 	$+3
+2530	0x04a6	0x7c0e	   2530: 	LDI 	TBR,			1000B
+2531	0x04a7	0x2c9b	   2531: 	ORM 	CHN1_RET2_BAK3,		01H
+2532			   
+2533			   
+2534			   2534: 	;LDA	CHN1_RET0_BAK3,		01H
+2535			   2535: 	;STA	CHN1_FINAL_RET0,		01H
+2536	0x04a8	0x389a	   2536: 	LDA	CHN1_RET1_BAK3,		01H
+2537	0x04a9	0x3c9d	   2537: 	STA	CHN1_FINAL_RET1,	01H
+2538	0x04aa	0x389b	   2538: 	LDA	CHN1_RET2_BAK3,		01H
+2539	0x04ab	0x3c9e	   2539: 	STA	CHN1_FINAL_RET2,	01H
+2540			   
+2541			   2541: ;----------------------------
+2542			   2542: ;调整为CHN1_FINAL_RET0存放低4位，CHN1_FINAL_RET1存放中4位，CHN1_FINAL_RET2存放高2位
+2543			   2543: 	;LDA 	CHN1_FINAL_RET1,		01H
+2544			   2544: 	;SHR
+2545			   2545: 	;STA 	CHN1_FINAL_RET1,		01H
+2546			   
+2547			   2547: 	;BNC 	$+3
+2548			   2548: 	;LDI 	TBR,			0100B
+2549			   2549: 	;ORM 	CHN1_FINAL_RET0,		01H
+2550			   
+2551			   2551: 	;LDA 	CHN1_FINAL_RET1,		01H
+2552			   2552: 	;SHR
+2553			   2553: 	;STA 	CHN1_FINAL_RET1,		01H	
+2554			   
+2555			   2555: 	;BNC 	$+3
+2556			   2556: 	;LDI 	TBR,			1000B
+2557			   2557: 	;ORM 	CHN1_FINAL_RET0,		01H
+2558			   
+2559			   
+2560			   2560: 	;LDA 	CHN1_FINAL_RET2,		01H
+2561			   2561: 	;SHR
+2562			   2562: 	;STA 	CHN1_FINAL_RET2,		01H	
+2563			   
+2564			   2564: 	;BNC 	$+3
+2565			   2565: 	;LDI 	TBR,			0100B
+2566			   2566: 	;ORM 	CHN1_FINAL_RET1,		01H
+2567			   
+2568			   2568: 	;LDA 	CHN1_FINAL_RET2,		01H
+2569			   2569: 	;SHR
+2570			   2570: 	;STA 	CHN1_FINAL_RET2,		01H	
+2571			   
+2572			   2572: 	;BNC 	$+3
+2573			   2573: 	;LDI 	TBR,			1000B
+2574			   2574: 	;ORM 	CHN1_FINAL_RET1,		01H
+2575			   2575: 	
+2576			   2576: ;----------------------------
+2577			   2577: CAL_CHN1_ADCDATA_END:	
+2578			   
+2579	0x04ac	0xd400	   2579: 	RTNI
+2580			   
+2581			   
+2582			   2582: ;*******************************************
+2583			   2583: ; 子程序: CAL_CHN6_ADCDATA
+2584			   2584: ; 描述: 防脉冲平均滤波法（N=4，去一个最大值和一个最小值，剩下两个求平均值）
+2585			   2585: ;*******************************************
+2586			   2586: CAL_CHN6_ADCDATA:
+2587	0x04ad	0x4241	   2587: 	ADI	FLAG_OCCUPIED,		0100B
+2588	0x04ae	0xb4b0	   2588: 	BA2	CAL_CHN6_AD_MIN01
+2589	0x04af	0xe540	   2589: 	JMP	CAL_CHN6_ADCDATA_END		;正在使用转换结果
+2590			   2590: 	
+2591			   2591: ;----------------------------
+2592			   2592: ;寻找最小值
+2593			   2593: CAL_CHN6_AD_MIN01:	
+2594	0x04b0	0x38a1	   2594: 	LDA 	CHN6_RET1_BAK0,		01H
+2595	0x04b1	0x18a4	   2595: 	SUB 	CHN6_RET1_BAK1,		01H
+2596	0x04b2	0x38a2	   2596: 	LDA 	CHN6_RET2_BAK0,		01H
+2597	0x04b3	0x10a5	   2597: 	SBC 	CHN6_RET2_BAK1,		01H
+2598	0x04b4	0x9cc6	   2598: 	BC 	CAL_CHN6_AD_MIN02 		;D0<D1	
+2599			   
+2600			   2600: CAL_CHN6_AD_MIN12:
+2601	0x04b5	0x38a4	   2601: 	LDA 	CHN6_RET1_BAK1,		01H
+2602	0x04b6	0x18a7	   2602: 	SUB 	CHN6_RET1_BAK2,		01H
+2603	0x04b7	0x38a5	   2603: 	LDA 	CHN6_RET2_BAK1,		01H
+2604	0x04b8	0x10a8	   2604: 	SBC 	CHN6_RET2_BAK2,		01H
+2605	0x04b9	0x9cc0	   2605: 	BC 	CAL_CHN6_AD_MIN13 		;D1<D2
+2606			   
+2607			   2607: CAL_CHN6_AD_MIN23:
+2608	0x04ba	0x38a7	   2608: 	LDA 	CHN6_RET1_BAK2,		01H
+2609	0x04bb	0x18aa	   2609: 	SUB 	CHN6_RET1_BAK3,		01H
+2610	0x04bc	0x38a8	   2610: 	LDA 	CHN6_RET2_BAK2,		01H
+2611	0x04bd	0x10ab	   2611: 	SBC 	CHN6_RET2_BAK3,		01H
+2612	0x04be	0x9cdc	   2612: 	BC 	CAL_CHN6_AD_MIN2 		;D2<D3
+2613			   2613: 	;D3<D2
+2614	0x04bf	0xe4e1	   2614: 	JMP 	CAL_CHN6_AD_MIN3
+2615			   
+2616			   2616: CAL_CHN6_AD_MIN13:
+2617	0x04c0	0x38a4	   2617: 	LDA 	CHN6_RET1_BAK1,		01H
+2618	0x04c1	0x18aa	   2618: 	SUB 	CHN6_RET1_BAK3,		01H
+2619	0x04c2	0x38a5	   2619: 	LDA 	CHN6_RET2_BAK1,		01H
+2620	0x04c3	0x10ab	   2620: 	SBC 	CHN6_RET2_BAK3,		01H
+2621	0x04c4	0x9cd7	   2621: 	BC 	CAL_CHN6_AD_MIN1 		;D1<D3
+2622			   2622: 	;D3<D1
+2623	0x04c5	0xe4e1	   2623: 	JMP 	CAL_CHN6_AD_MIN3
+2624			   
+2625			   2625: ;D0<D1
+2626			   2626: CAL_CHN6_AD_MIN02:
+2627	0x04c6	0x38a1	   2627: 	LDA 	CHN6_RET1_BAK0,		01H
+2628	0x04c7	0x18a7	   2628: 	SUB 	CHN6_RET1_BAK2,		01H
+2629	0x04c8	0x38a2	   2629: 	LDA 	CHN6_RET2_BAK0,		01H
+2630	0x04c9	0x10a8	   2630: 	SBC 	CHN6_RET2_BAK2,		01H
+2631	0x04ca	0x9ccc	   2631: 	BC 	CAL_CHN6_AD_MIN03 		;D0<D2
+2632			   2632: 	;D3<D1
+2633	0x04cb	0xe4ba	   2633: 	JMP 	CAL_CHN6_AD_MIN23
+2634			   
+2635			   2635: ;D0<D2
+2636			   2636: CAL_CHN6_AD_MIN03:
+2637	0x04cc	0x38a1	   2637: 	LDA 	CHN6_RET1_BAK0,		01H
+2638	0x04cd	0x18aa	   2638: 	SUB 	CHN6_RET1_BAK3,		01H
+2639	0x04ce	0x38a2	   2639: 	LDA 	CHN6_RET2_BAK0,		01H
+2640	0x04cf	0x10ab	   2640: 	SBC 	CHN6_RET2_BAK3,		01H
+2641	0x04d0	0x9cd2	   2641: 	BC 	CAL_CHN6_AD_MIN0 		;D0<D3
+2642			   2642: 	;D3<D0
+2643	0x04d1	0xe4e1	   2643: 	JMP 	CAL_CHN6_AD_MIN3
+2644			   
+2645			   2645: ;-----------------------
+2646			   2646: ;将最小值清零
+2647			   2647: CAL_CHN6_AD_MIN0:
+2648	0x04d2	0x780e	   2648: 	LDI 	TBR,			00H
+2649	0x04d3	0x3ca0	   2649: 	STA 	CHN6_RET0_BAK0,		01H
+2650	0x04d4	0x3ca1	   2650: 	STA 	CHN6_RET1_BAK0,		01H
+2651	0x04d5	0x3ca2	   2651: 	STA 	CHN6_RET2_BAK0,		01H
+2652	0x04d6	0xe4e6	   2652: 	JMP 	CAL_CHN6_AD_MAX01
+2653			   
+2654			   2654: CAL_CHN6_AD_MIN1:
+2655	0x04d7	0x780e	   2655: 	LDI 	TBR,			00H
+2656	0x04d8	0x3ca3	   2656: 	STA 	CHN6_RET0_BAK1,		01H
+2657	0x04d9	0x3ca4	   2657: 	STA 	CHN6_RET1_BAK1,		01H
+2658	0x04da	0x3ca5	   2658: 	STA 	CHN6_RET2_BAK1,		01H
+2659	0x04db	0xe4e6	   2659: 	JMP 	CAL_CHN6_AD_MAX01
+2660			   
+2661			   2661: CAL_CHN6_AD_MIN2:
+2662	0x04dc	0x780e	   2662: 	LDI 	TBR,			00H
+2663	0x04dd	0x3ca6	   2663: 	STA 	CHN6_RET0_BAK2,		01H
+2664	0x04de	0x3ca7	   2664: 	STA 	CHN6_RET1_BAK2,		01H
+2665	0x04df	0x3ca8	   2665: 	STA 	CHN6_RET2_BAK2,		01H
+2666	0x04e0	0xe4e6	   2666: 	JMP 	CAL_CHN6_AD_MAX01
+2667			   
+2668			   2668: CAL_CHN6_AD_MIN3:
+2669	0x04e1	0x780e	   2669: 	LDI 	TBR,			00H
+2670	0x04e2	0x3ca9	   2670: 	STA 	CHN6_RET0_BAK3,		01H
+2671	0x04e3	0x3caa	   2671: 	STA 	CHN6_RET1_BAK3,		01H
+2672	0x04e4	0x3cab	   2672: 	STA 	CHN6_RET2_BAK3,		01H
+2673	0x04e5	0xe4e6	   2673: 	JMP 	CAL_CHN6_AD_MAX01
+2674			   
+2675			   2675: ;----------------------------
+2676			   2676: ;寻找最大值
+2677			   2677: CAL_CHN6_AD_MAX01:
+2678	0x04e6	0x38a1	   2678: 	LDA 	CHN6_RET1_BAK0,		01H
+2679	0x04e7	0x18a4	   2679: 	SUB 	CHN6_RET1_BAK1,		01H
+2680	0x04e8	0x38a2	   2680: 	LDA 	CHN6_RET2_BAK0,		01H
+2681	0x04e9	0x10a5	   2681: 	SBC 	CHN6_RET2_BAK1,		01H
+2682	0x04ea	0x9cfc	   2682: 	BC 	CAL_CHN6_AD_MAX12 		;D1>D0
+2683			   
+2684			   2684: ;D0>D1
+2685			   2685: CAL_CHN6_AD_MAX02:
+2686	0x04eb	0x38a1	   2686: 	LDA 	CHN6_RET1_BAK0,		01H
+2687	0x04ec	0x18a7	   2687: 	SUB 	CHN6_RET1_BAK2,		01H
+2688	0x04ed	0x38a2	   2688: 	LDA 	CHN6_RET2_BAK0,		01H
+2689	0x04ee	0x10a8	   2689: 	SBC 	CHN6_RET2_BAK2,		01H
+2690	0x04ef	0x9cf6	   2690: 	BC 	CAL_CHN6_AD_MAX23 		;D2>D0
+2691			   
+2692			   2692: ;D0>D2
+2693			   2693: CAL_CHN6_AD_MAX03:
+2694	0x04f0	0x38a1	   2694: 	LDA 	CHN6_RET1_BAK0,		01H
+2695	0x04f1	0x18aa	   2695: 	SUB 	CHN6_RET1_BAK3,		01H
+2696	0x04f2	0x38a2	   2696: 	LDA 	CHN6_RET2_BAK0,		01H
+2697	0x04f3	0x10ab	   2697: 	SBC 	CHN6_RET2_BAK3,		01H
+2698	0x04f4	0x9d16	   2698: 	BC 	CAL_CHN6_AD_MAX3 		;D3>D0
+2699			   2699: 	;D0>D3
+2700	0x04f5	0xe507	   2700: 	JMP 	CAL_CHN6_AD_MAX0
+2701			   
+2702			   2702: ;D2>D0
+2703			   2703: CAL_CHN6_AD_MAX23:
+2704	0x04f6	0x38a7	   2704: 	LDA 	CHN6_RET1_BAK2,		01H
+2705	0x04f7	0x18aa	   2705: 	SUB 	CHN6_RET1_BAK3,		01H
+2706	0x04f8	0x38a8	   2706: 	LDA 	CHN6_RET2_BAK2,		01H
+2707	0x04f9	0x10ab	   2707: 	SBC 	CHN6_RET2_BAK3,		01H
+2708	0x04fa	0x9d16	   2708: 	BC 	CAL_CHN6_AD_MAX3 		;D3>D2
+2709			   2709: 	;D2>D3
+2710	0x04fb	0xe511	   2710: 	JMP 	CAL_CHN6_AD_MAX2
+2711			   
+2712			   2712: ;D1>D0
+2713			   2713: CAL_CHN6_AD_MAX12:
+2714	0x04fc	0x38a4	   2714: 	LDA 	CHN6_RET1_BAK1,		01H
+2715	0x04fd	0x18a7	   2715: 	SUB 	CHN6_RET1_BAK2,		01H
+2716	0x04fe	0x38a5	   2716: 	LDA 	CHN6_RET2_BAK1,		01H
+2717	0x04ff	0x10a8	   2717: 	SBC 	CHN6_RET2_BAK2,		01H
+2718	0x0500	0x9cf6	   2718: ,	01H
+2719			   
+2720			   2720: ;D1>D2
+2721			   2721: CAL_CHN6_AD_MAX13:
+2722	0x0501	0x38a4	   2722: 	LDA 	CHN6_RET1_BAK1,		01H
+2723	0x0502	0x18aa	   2723: 	SUB 	CHN6_RET1_BAK3,		01H
+2724	0x0503	0x38a5	   2724: 	LDA 	CHN6_RET2_BAK1,		01H
+2725	0x0504	0x10ab	   2725: 	SBC 	CHN6_RET2_BAK3,		01H
+2726	0x0505	0x9d16	   2726: 	BC 	CAL_CHN6_AD_MAX3 		;D3>D1
+2727			   2727: 	;D1>D3
+2728	0x0506	0xe50c	   2728: 	JMP 	CAL_CHN6_AD_MAX1
+2729			   
+2730			   2730: ;-----------------------
+2731			   2731: ;将最大值清零
+2732			   2732: CAL_CHN6_AD_MAX0:
+2733	0x0507	0x780e	   2733: 	LDI 	TBR,			00H
+2734	0x0508	0x3ca0	   2734: 	STA 	CHN6_RET0_BAK0,		01H
+2735	0x0509	0x3ca1	   2735: 	STA 	CHN6_RET1_BAK0,		01H
+2736	0x050a	0x3ca2	   2736: 	STA 	CHN6_RET2_BAK0,		01H
+2737	0x050b	0xe51b	   2737: 	JMP 	CAL_CHN6_AD_ADD
+2738			   
+2739			   2739: CAL_CHN6_AD_MAX1:
+2740	0x050c	0x780e	   2740: 	LDI 	TBR,			00H
+2741	0x050d	0x3ca3	   2741: 	STA 	CHN6_RET0_BAK1,		01H
+2742	0x050e	0x3ca4	   2742: 	STA 	CHN6_RET1_BAK1,		01H
+2743	0x050f	0x3ca5	   2743: 	STA 	CHN6_RET2_BAK1,		01H
+2744	0x0510	0xe51b	   2744: 	JMP 	CAL_CHN6_AD_ADD
+2745			   
+2746			   2746: CAL_CHN6_AD_MAX2:
+2747	0x0511	0x780e	   2747: 	LDI 	TBR,			00H
+2748	0x0512	0x3ca6	   2748: 	STA 	CHN6_RET0_BAK2,		01H
+2749	0x0513	0x3ca7	   2749: 	STA 	CHN6_RET1_BAK2,		01H
+2750	0x0514	0x3ca8	   2750: 	STA 	CHN6_RET2_BAK2,		01H
+2751	0x0515	0xe51b	   2751: 	JMP 	CAL_CHN6_AD_ADD
+2752			   
+2753			   2753: CAL_CHN6_AD_MAX3:
+2754	0x0516	0x780e	   2754: 	LDI 	TBR,			00H
+2755	0x0517	0x3ca9	   2755: 	STA 	CHN6_RET0_BAK3,		01H
+2756	0x0518	0x3caa	   2756: 	STA 	CHN6_RET1_BAK3,		01H
+2757	0x0519	0x3cab	   2757: 	STA 	CHN6_RET2_BAK3,		01H
+2758	0x051a	0xe51b	   2758: 	JMP 	CAL_CHN6_AD_ADD
+2759			   
+2760			   2760: ;----------------------------
+2761			   2761: ;计算总和并存放在CHN6_RET0_BAK3,CHN6_RET1_BAK3 和CHN6_RET2_BAK3（包括两个被清零的）
+2762			   2762: CAL_CHN6_AD_ADD:
+2763	0x051b	0x7840	   2763: 	LDI 	TEMP_SUM_CY,		00H
+2764			   
+2765			   2765: 	;D0 + D1
+2766			   2766: 	;LDA 	CHN6_RET0_BAK0,		01H
+2767			   2767: 	;ADDM 	CHN6_RET0_BAK1,		01H
+2768	0x051c	0x38a1	   2768: 	LDA 	CHN6_RET1_BAK0,		01H
+2769	0x051d	0x0ca4	   2769: 	ADDM 	CHN6_RET1_BAK1,		01H
+2770	0x051e	0x38a2	   2770: 	LDA 	CHN6_RET2_BAK0,		01H
+2771	0x051f	0x04a5	   2771: 	ADCM 	CHN6_RET2_BAK1,		01H
+2772	0x0520	0x780e	   2772: 	LDI 	TBR,			00H
+2773	0x0521	0x0440	   2773: 	ADCM 	TEMP_SUM_CY
+2774			   
+2775			   2775: 	;+ D2
+2776			   2776: 	;LDA 	CHN6_RET0_BAK1,		01H
+2777			   2777: 	;ADDM 	CHN6_RET0_BAK2,		01H
+2778	0x0522	0x38a4	   2778: 	LDA 	CHN6_RET1_BAK1,		01H
+2779	0x0523	0x0ca7	   2779: 	ADDM 	CHN6_RET1_BAK2,		01H
+2780	0x0524	0x38a5	   2780: 	LDA 	CHN6_RET2_BAK1,		01H
+2781	0x0525	0x04a8	   2781: 	ADCM 	CHN6_RET2_BAK2,		01H
+2782	0x0526	0x780e	   2782: 	LDI 	TBR,			00H
+2783	0x0527	0x0440	   2783: 	ADCM 	TEMP_SUM_CY
+2784			   
+2785			   2785: 	;+ D3
+2786			   2786: 	;LDA 	CHN6_RET0_BAK2,		01H
+2787			   2787: 	;ADDM 	CHN6_RET0_BAK3,		01H
+2788	0x0528	0x38a7	   2788: 	LDA 	CHN6_RET1_BAK2,		01H
+2789	0x0529	0x0caa	   2789: 	ADDM 	CHN6_RET1_BAK3,		01H
+2790	0x052a	0x38a8	   2790: 	LDA 	CHN6_RET2_BAK2,		01H
+2791	0x052b	0x04ab	   2791: 	ADCM 	CHN6_RET2_BAK3,		01H
+2792	0x052c	0x780e	   2792: 	LDI 	TBR,			00H
+2793	0x052d	0x0440	   2793: 	ADCM 	TEMP_SUM_CY
+2794			   
+2795			   2795: ;----------------------------
+2796			   2796: ;总和除以2，得到平均值，存放在CHN6_FINAL_RET0(),CHN6_FINAL_RET1 和CHN6_FINAL_RET2
+2797			   2797: CAL_CHN6_AD_DIV:
+2798			   2798: 	;LDA 	CHN6_RET0_BAK3,		01H
+2799			   2799: 	;SHR
+2800			   2800: 	;STA 	CHN6_RET0_BAK3,		01H
+2801			   2801: 	
+2802	0x052e	0x38aa	   2802: 	LDA 	CHN6_RET1_BAK3,		01H
+2803	0x052f	0xf000	   2803: 	SHR
+2804	0x0530	0x3caa	   2804: 	STA 	CHN6_RET1_BAK3,		01H
+2805			   2805: 	
+2806			   2806: 	;BNC 	$+3
+2807			   2807: 	;LDI 	TBR,			0010B
+2808			   2808: 	;ORM 	CHN6_RET0_BAK3
+2809			   
+2810	0x0531	0x38ab	   2810: 	LDA 	CHN6_RET2_BAK3,		01H
+2811	0x0532	0xf000	   2811: 	SHR
+2812	0x0533	0x3cab	   2812: 	STA 	CHN6_RET2_BAK3,		01H
+2813			   2813: 	
+2814	0x0534	0x8d37	   2814: 	BNC 	$+3
+2815	0x0535	0x7c0e	   2815: 	LDI 	TBR,			1000B
+2816	0x0536	0x2caa	   2816: 	ORM 	CHN6_RET1_BAK3,		01H
+2817			   
+2818	0x0537	0x3840	   2818: 	LDA 	TEMP_SUM_CY
+2819	0x0538	0xf000	   2819: 	SHR
+2820	0x0539	0x8d3c	   2820: 	BNC 	$+3
+2821	0x053a	0x7c0e	   2821: 	LDI 	TBR,			1000B
+2822	0x053b	0x2cab	   2822: 	ORM 	CHN6_RET2_BAK3,		01H
+2823			   
+2824			   
+2825			   2825: 	;LDA	CHN6_RET0_BAK3,		01H
+2826			   2826: 	;STA	CHN6_FINAL_RET0,		01H
+2827	0x053c	0x38aa	   2827: 	LDA	CHN6_RET1_BAK3,		01H
+2828	0x053d	0x3cad	   2828: 	STA	CHN6_FINAL_RET1,	01H
+2829	0x053e	0x38ab	   2829: 	LDA	CHN6_RET2_BAK3,		01H
+2830	0x053f	0x3cae	   2830: 	STA	CHN6_FINAL_RET2,	01H
+2831			   
+2832			   2832: ;----------------------------
+2833			   2833: ;调整为CHN6_FINAL_RET0存放低4位，CHN6_FINAL_RET1存放中4位，CHN6_FINAL_RET2存放高2位
+2834			   2834: 	;LDA 	CHN6_FINAL_RET1,		01H
+2835			   2835: 	;SHR
+2836			   2836: 	;STA 	CHN6_FINAL_RET1,		01H
+2837			   
+2838			   2838: 	;BNC 	$+3
+2839			   2839: 	;LDI 	TBR,			0100B
+2840			   2840: 	;ORM 	CHN6_FINAL_RET0,		01H
+2841			   
+2842			   2842: 	;LDA 	CHN6_FINAL_RET1,		01H
+2843			   2843: 	;SHR
+2844			   2844: 	;STA 	CHN6_FINAL_RET1,		01H	
+2845			   
+2846			   2846: 	;BNC 	$+3
+2847			   2847: 	;LDI 	TBR,			1000B
+2848			   2848: 	;ORM 	CHN6_FINAL_RET0,		01H
+2849			   
+2850			   
+2851			   2851: 	;LDA 	CHN6_FINAL_RET2,		01H
+2852			   2852: 	;SHR
+2853			   2853: 	;STA 	CHN6_FINAL_RET2,		01H	
+2854			   
+2855			   2855: 	;BNC 	$+3
+2856			   2856: 	;LDI 	TBR,			0100B
+2857			   2857: 	;ORM 	CHN6_FINAL_RET1,		01H
+2858			   
+2859			   2859: 	;LDA 	CHN6_FINAL_RET2,		01H
+2860			   2860: 	;SHR
+2861			   2861: 	;STA 	CHN6_FINAL_RET2,		01H	
+2862			   
+2863			   2863: 	;BNC 	$+3
+2864			   2864: 	;LDI 	TBR,			1000B
+2865			   2865: 	;ORM 	CHN6_FINAL_RET1,		01H
+2866			   2866: 	
+2867			   2867: ;----------------------------
+2868			   2868: CAL_CHN6_ADCDATA_END:	
+2869			   
+2870	0x0540	0xd400	   2870: 	RTNI
+2871			   
+2872			   
+2873			   2873: ;*******************************************
+2874			   2874: ; 子程序: CAL_CHN7_ADCDATA
+2875			   2875: ; 描述: 防脉冲平均滤波法（N=4，去一个最大值和一个最小值，剩下两个求平均值）
+2876			   2876: ;*******************************************
+2877			   2877: CAL_CHN7_ADCDATA:
+2878	0x0541	0x4441	   2878: 	ADI	FLAG_OCCUPIED,		1000B
+2879	0x0542	0xbd44	   2879: 	BA3	CAL_CHN7_AD_MIN01
+2880	0x0543	0xe5d4	   2880: 	JMP	CAL_CHN7_ADCDATA_END		;正在使用转换结果
+2881			   
+2882			   2882: ;----------------------------
+2883			   2883: ;寻找最小值
+2884			   2884: CAL_CHN7_AD_MIN01:	
+2885	0x0544	0x38b1	   2885: 	LDA 	CHN7_RET1_BAK0,		01H
+2886	0x0545	0x18b4	   2886: 	SUB 	CHN7_RET1_BAK1,		01H
+2887	0x0546	0x38b2	   2887: 	LDA 	CHN7_RET2_BAK0,		01H
+2888	0x0547	0x10b5	   2888: 	SBC 	CHN7_RET2_BAK1,		01H
+2889	0x0548	0x9d5a	   2889: 	BC 	CAL_CHN7_AD_MIN02 		;D0<D1	
+2890			   
+2891			   2891: CAL_CHN7_AD_MIN12:
+2892	0x0549	0x38b4	   2892: 	LDA 	CHN7_RET1_BAK1,		01H
+2893	0x054a	0x18b7	   2893: 	SUB 	CHN7_RET1_BAK2,		01H
+2894	0x054b	0x38b5	   2894: 	LDA 	CHN7_RET2_BAK1,		01H
+2895	0x054c	0x10b8	   2895: 	SBC 	CHN7_RET2_BAK2,		01H
+2896	0x054d	0x9d54	   2896: 	BC 	CAL_CHN7_AD_MIN13 		;D1<D2
+2897			   
+2898			   2898: CAL_CHN7_AD_MIN23:
+2899	0x054e	0x38b7	   2899: 	LDA 	CHN7_RET1_BAK2,		01H
+2900	0x054f	0x18ba	   2900: 	SUB 	CHN7_RET1_BAK3,		01H
+2901	0x0550	0x38b8	   2901: 	LDA 	CHN7_RET2_BAK2,		01H
+2902	0x0551	0x10bb	   2902: 	SBC 	CHN7_RET2_BAK3,		01H
+2903	0x0552	0x9d70	   2903: 	BC 	CAL_CHN7_AD_MIN2 		;D2<D3
+2904			   2904: 	;D3<D2
+2905	0x0553	0xe575	   2905: 	JMP 	CAL_CHN7_AD_MIN3
+2906			   
+2907			   2907: CAL_CHN7_AD_MIN13:
+2908	0x0554	0x38b4	   2908: 	LDA 	CHN7_RET1_BAK1,		01H
+2909	0x0555	0x18ba	   2909: 	SUB 	CHN7_RET1_BAK3,		01H
+2910	0x0556	0x38b5	   2910: 	LDA 	CHN7_RET2_BAK1,		01H
+2911	0x0557	0x10bb	   2911: 	SBC 	CHN7_RET2_BAK3,		01H
+2912	0x0558	0x9d6b	   2912: 	BC 	CAL_CHN7_AD_MIN1 		;D1<D3
+2913			   2913: 	;D3<D1
+2914	0x0559	0xe575	   2914: 	JMP 	CAL_CHN7_AD_MIN3
+2915			   
+2916			   2916: ;D0<D1
+2917			   2917: CAL_CHN7_AD_MIN02:
+2918	0x055a	0x38b1	   2918: 	LDA 	CHN7_RET1_BAK0,		01H
+2919	0x055b	0x18b7	   2919: 	SUB 	CHN7_RET1_BAK2,		01H
+2920	0x055c	0x38b2	   2920: 	LDA 	CHN7_RET2_BAK0,		01H
+2921	0x055d	0x10b8	   2921: 	SBC 	CHN7_RET2_BAK2,		01H
+2922	0x055e	0x9d60	   2922: 	BC 	CAL_CHN7_AD_MIN03 		;D0<D2
+2923			   2923: 	;D3<D1
+2924	0x055f	0xe54e	   2924: 	JMP 	CAL_CHN7_AD_MIN23
+2925			   
+2926			   2926: ;D0<D2
+2927			   2927: CAL_CHN7_AD_MIN03:
+2928	0x0560	0x38b1	   2928: 	LDA 	CHN7_RET1_BAK0,		01H
+2929	0x0561	0x18ba	   2929: 	SUB 	CHN7_RET1_BAK3,		01H
+2930	0x0562	0x38b2	   2930: 	LDA 	CHN7_RET2_BAK0,		01H
+2931	0x0563	0x10bb	   2931: 	SBC 	CHN7_RET2_BAK3,		01H
+2932	0x0564	0x9d66	   2932: 	BC 	CAL_CHN7_AD_MIN0 		;D0<D3
+2933			   2933: 	;D3<D0
+2934	0x0565	0xe575	   2934: 	JMP 	CAL_CHN7_AD_MIN3
+2935			   
+2936			   2936: ;-----------------------
+2937			   2937: ;将最小值清零
+2938			   2938: CAL_CHN7_AD_MIN0:
+2939	0x0566	0x780e	   2939: 	LDI 	TBR,			00H
+2940	0x0567	0x3cb0	   2940: 	STA 	CHN7_RET0_BAK0,		01H
+2941	0x0568	0x3cb1	   2941: 	STA 	CHN7_RET1_BAK0,		01H
+2942	0x0569	0x3cb2	   2942: 	STA 	CHN7_RET2_BAK0,		01H
+2943	0x056a	0xe57a	   2943: 	JMP 	CAL_CHN7_AD_MAX01
+2944			   
+2945			   2945: CAL_CHN7_AD_MIN1:
+2946	0x056b	0x780e	   2946: 	LDI 	TBR,			00H
+2947	0x056c	0x3cb3	   2947: 	STA 	CHN7_RET0_BAK1,		01H
+2948	0x056d	0x3cb4	   2948: 	STA 	CHN7_RET1_BAK1,		01H
+2949	0x056e	0x3cb5	   2949: 	STA 	CHN7_RET2_BAK1,		01H
+2950	0x056f	0xe57a	   2950: 	JMP 	CAL_CHN7_AD_MAX01
+2951			   
+2952			   2952: CAL_CHN7_AD_MIN2:
+2953	0x0570	0x780e	   2953: 	LDI 	TBR,			00H
+2954	0x0571	0x3cb6	   2954: 	STA 	CHN7_RET0_BAK2,		01H
+2955	0x0572	0x3cb7	   2955: 	STA 	CHN7_RET1_BAK2,		01H
+2956	0x0573	0x3cb8	   2956: 	STA 	CHN7_RET2_BAK2,		01H
+2957	0x0574	0xe57a	   2957: 	JMP 	CAL_CHN7_AD_MAX01
+2958			   
+2959			   2959: CAL_CHN7_AD_MIN3:
+2960	0x0575	0x780e	   2960: 	LDI 	TBR,			00H
+2961	0x0576	0x3cb9	   2961: 	STA 	CHN7_RET0_BAK3,		01H
+2962	0x0577	0x3cba	   2962: 	STA 	CHN7_RET1_BAK3,		01H
+2963	0x0578	0x3cbb	   2963: 	STA 	CHN7_RET2_BAK3,		01H
+2964	0x0579	0xe57a	   2964: 	JMP 	CAL_CHN7_AD_MAX01
+2965			   
+2966			   2966: ;----------------------------
+2967			   2967: ;寻找最大值
+2968			   2968: CAL_CHN7_AD_MAX01:
+2969	0x057a	0x38b1	   2969: 	LDA 	CHN7_RET1_BAK0,		01H
+2970	0x057b	0x18b4	   2970: 	SUB 	CHN7_RET1_BAK1,		01H
+2971	0x057c	0x38b2	   2971: 	LDA 	CHN7_RET2_BAK0,		01H
+2972	0x057d	0x10b5	   2972: 	SBC 	CHN7_RET2_BAK1,		01H
+2973	0x057e	0x9d90	   2973: 	BC 	CAL_CHN7_AD_MAX12 		;D1>D0
+2974			   
+2975			   2975: ;D0>D1
+2976			   2976: CAL_CHN7_AD_MAX02:
+2977	0x057f	0x38b1	   2977: 	LDA 	CHN7_RET1_BAK0,		01H
+2978	0x0580	0x18b7	   2978: 	SUB 	CHN7_RET1_BAK2,		01H
+2979	0x0581	0x38b2	   2979: 	LDA 	CHN7_RET2_BAK0,		01H
+2980	0x0582	0x10b8	   2980: 	SBC 	CHN7_RET2_BAK2,		01H
+2981	0x0583	0x9d8a	   2981: 	BC 	CAL_CHN7_AD_MAX23 		;D2>D0
+2982			   
+2983			   2983: ;D0>D2
+2984			   2984: CAL_CHN7_AD_MAX03:
+2985	0x0584	0x38b1	   2985: 	LDA 	CHN7_RET1_BAK0,		01H
+2986	0x0585	0x18ba	   2986: 	SUB 	CHN7_RET1_BAK3,		01H
+2987	0x0586	0x38b2	   2987: 	LDA 	CHN7_RET2_BAK0,		01H
+2988	0x0587	0x10bb	   2988: 	SBC 	CHN7_RET2_BAK3,		01H
+2989	0x0588	0x9daa	   2989: 	BC 	CAL_CHN7_AD_MAX3 		;D3>D0
+2990			   2990: 	;D0>D3
+2991	0x0589	0xe59b	   2991: 	JMP 	CAL_CHN7_AD_MAX0
+2992			   
+2993			   2993: ;D2>D0
+2994			   2994: CAL_CHN7_AD_MAX23:
+2995	0x058a	0x38b7	   2995: 	LDA 	CHN7_RET1_BAK2,		01H
+2996	0x058b	0x18ba	   2996: 	SUB 	CHN7_RET1_BAK3,		01H
+2997	0x058c	0x38b8	   2997: 	LDA 	CHN7_RET2_BAK2,		01H
+2998	0x058d	0x10bb	   2998: 	SBC 	CHN7_RET2_BAK3,		01H
+2999	0x058e	0x9daa	   2999: 	BC 	CAL_CHN7_AD_MAX3 		;D3>D2
+3000			   3000: 	;D2>D3
+3001	0x058f	0xe5a5	   3001: 	JMP 	CAL_CHN7_AD_MAX2
+3002			   
+3003			   3003: ;D1>D0
+3004			   3004: CAL_CHN7_AD_MAX12:
+3005	0x0590	0x38b4	   3005: 	LDA 	CHN7_RET1_BAK1,		01H
+3006	0x0591	0x18b7	   3006: 	SUB 	CHN7_RET1_BAK2,		01H
+3007	0x0592	0x38b5	   3007: 	LDA 	CHN7_RET2_BAK1,		01H
+3008	0x0593	0x10b8	   3008: 	SBC 	CHN7_RET2_BAK2,		01H
+3009	0x0594	0x9d8a	   3009: 	BC 	CAL_CHN7_AD_MAX23 		;D2>D1
+3010			   
+3011			   3011: ;D1>D2
+3012			   3012: CAL_CHN7_AD_MAX13:
+3013	0x0595	0x38b4	   3013: 	LDA 	CHN7_RET1_BAK1,		01H
+3014	0x0596	0x18ba	   3014: 	SUB 	CHN7_RET1_BAK3,		01H
+3015	0x0597	0x38b5	   3015: 	LDA 	CHN7_RET2_BAK1,		01H
+3016	0x0598	0x10bb	   3016: 	SBC 	CHN7_RET2_BAK3,		01H
+3017	0x0599	0x9daa	   3017: 	BC 	CAL_CHN7_AD_MAX3 		;D3>D1
+3018			   3018: 	;D1>D3
+3019	0x059a	0xe5a0	   3019: 	JMP 	CAL_CHN7_AD_MAX1
+3020			   
+3021			   3021: ;-----------------------
+3022			   3022: ;将最大值清零
+3023			   3023: CAL_CHN7_AD_MAX0:
+3024	0x059b	0x780e	   3024: 	LDI 	TBR,			00H
+3025	0x059c	0x3cb0	   3025: 	STA 	CHN7_RET0_BAK0,		01H
+3026	0x059d	0x3cb1	   3026: 	STA 	CHN7_RET1_BAK0,		01H
+3027	0x059e	0x3cb2	   3027: 	STA 	CHN7_RET2_BAK0,		01H
+3028	0x059f	0xe5af	   3028: 	JMP 	CAL_CHN7_AD_ADD
+3029			   
+3030			   3030: CAL_CHN7_AD_MAX1:
+3031	0x05a0	0x780e	   3031: 	LDI 	TBR,			00H
+3032	0x05a1	0x3cb3	   3032: 	STA 	CHN7_RET0_BAK1,		01H
+3033	0x05a2	0x3cb4	   3033: 	STA 	CHN7_RET1_BAK1,		01H
+3034	0x05a3	0x3cb5	   3034: 	STA 	CHN7_RET2_BAK1,		01H
+3035	0x05a4	0xe5af	   3035: 	JMP 	CAL_CHN7_AD_ADD
+3036			   
+3037			   3037: CAL_CHN7_AD_MAX2:
+3038	0x05a5	0x780e	   3038: 	LDI 	TBR,			00H
+3039	0x05a6	0x3cb6	   3039: 	STA 	CHN7_RET0_BAK2,		01H
+3040	0x05a7	0x3cb7	   3040: 	STA 	CHN7_RET1_BAK2,		01H
+3041	0x05a8	0x3cb8	   3041: 	STA 	CHN7_RET2_BAK2,		01H
+3042	0x05a9	0xe5af	   3042: 	JMP 	CAL_CHN7_AD_ADD
+3043			   
+3044			   3044: CAL_CHN7_AD_MAX3:
+3045	0x05aa	0x780e	   3045: 	LDI 	TBR,			00H
+3046	0x05ab	0x3cb9	   3046: 	STA 	CHN7_RET0_BAK3,		01H
+3047	0x05ac	0x3cba	   3047: 	STA 	CHN7_RET1_BAK3,		01H
+3048	0x05ad	0x3cbb	   3048: 	STA 	CHN7_RET2_BAK3,		01H
+3049	0x05ae	0xe5af	   3049: 	JMP 	CAL_CHN7_AD_ADD
+3050			   
+3051			   3051: ;----------------------------
+3052			   3052: ;计算总和并存放在CHN7_RET0_BAK3,CHN7_RET1_BAK3 和CHN7_RET2_BAK3（包括两个被清零的）
+3053			   3053: CAL_CHN7_AD_ADD:
+3054	0x05af	0x7840	   3054: 	LDI 	TEMP_SUM_CY,		00H
+3055			   
+3056			   3056: 	;D0 + D1
+3057			   3057: 	;LDA 	CHN7_RET0_BAK0,		01H
+3058			   3058: 	;ADDM 	CHN7_RET0_BAK1,		01H
+3059	0x05b0	0x38b1	   3059: 	LDA 	CHN7_RET1_BAK0,		01H
+3060	0x05b1	0x0cb4	   3060: 	ADDM 	CHN7_RET1_BAK1,		01H
+3061	0x05b2	0x38b2	   3061: 	LDA 	CHN7_RET2_BAK0,		01H
+3062	0x05b3	0x04b5	   3062: 	ADCM 	CHN7_RET2_BAK1,		01H
+3063	0x05b4	0x780e	   3063: 	LDI 	TBR,			00H
+3064	0x05b5	0x0440	   3064: 	ADCM 	TEMP_SUM_CY
+3065			   
+3066			   3066: 	;+ D2
+3067			   3067: 	;LDA 	CHN7_RET0_BAK1,		01H
+3068			   3068: 	;ADDM 	CHN7_RET0_BAK2,		01H
+3069	0x05b6	0x38b4	   3069: 	LDA 	CHN7_RET1_BAK1,		01H
+3070	0x05b7	0x0cb7	   3070: 	ADDM 	CHN7_RET1_BAK2,		01H
+3071	0x05b8	0x38b5	   3071: 	LDA 	CHN7_RET2_BAK1,		01H
+3072	0x05b9	0x04b8	   3072: 	ADCM 	CHN7_RET2_BAK2,		01H
+3073	0x05ba	0x780e	   3073: 	LDI 	TBR,			00H
+3074	0x05bb	0x0440	   3074: 	ADCM 	TEMP_SUM_CY
+3075			   
+3076			   3076: 	;+ D3
+3077			   3077: 	;LDA 	CHN7_RET0_BAK2,		01H
+3078			   3078: 	;ADDM 	CHN7_RET0_BAK3,		01H
+3079	0x05bc	0x38b7	   3079: 	LDA 	CHN7_RET1_BAK2,		01H
+3080	0x05bd	0x0cba	   3080: 	ADDM 	CHN7_RET1_BAK3,		01H
+3081	0x05be	0x38b8	   3081: 	LDA 	CHN7_RET2_BAK2,		01H
+3082	0x05bf	0x04bb	   3082: 	ADCM 	CHN7_RET2_BAK3,		01H
+3083	0x05c0	0x780e	   3083: 	LDI 	TBR,			00H
+3084	0x05c1	0x0440	   3084: 	ADCM 	TEMP_SUM_CY
+3085			   
+3086			   3086: ;----------------------------
+3087			   3087: ;总和除以2，得到平均值，存放在CHN7_FINAL_RET0(),CHN7_FINAL_RET1 和CHN7_FINAL_RET2
+3088			   3088: CAL_CHN7_AD_DIV:
+3089			   3089: 	;LDA 	CHN7_RET0_BAK3,		01H
+3090			   3090: 	;SHR
+3091			   3091: 	;STA 	CHN7_RET0_BAK3,		01H
+3092			   3092: 	
+3093	0x05c2	0x38ba	   3093: 	LDA 	CHN7_RET1_BAK3,		01H
+3094	0x05c3	0xf000	   3094: 	SHR
+3095	0x05c4	0x3cba	   3095: 	STA 	CHN7_RET1_BAK3,		01H
+3096			   3096: 	
+3097			   3097: 	;BNC 	$+3
+3098			   3098: 	;LDI 	TBR,			0010B
+3099			   3099: 	;ORM 	CHN7_RET0_BAK3
+3100			   
+3101	0x05c5	0x38bb	   3101: 	LDA 	CHN7_RET2_BAK3,		01H
+3102	0x05c6	0xf000	   3102: 	SHR
+3103	0x05c7	0x3cbb	   3103: 	STA 	CHN7_RET2_BAK3,		01H
+3104			   3104: 	
+3105	0x05c8	0x8dcb	   3105: 	BNC 	$+3
+3106	0x05c9	0x7c0e	   3106: 	LDI 	TBR,			1000B
+3107	0x05ca	0x2cba	   3107: 	ORM 	CHN7_RET1_BAK3,		01H
+3108			   
+3109	0x05cb	0x3840	   3109: 	LDA 	TEMP_SUM_CY
+3110	0x05cc	0xf000	   3110: 	SHR
+3111	0x05cd	0x8dd0	   3111: 	BNC 	$+3
+3112	0x05ce	0x7c0e	   3112: 	LDI 	TBR,			1000B
+3113	0x05cf	0x2cbb	   3113: 	ORM 	CHN7_RET2_BAK3,		01H
+3114			   
+3115			   
+3116			   3116: 	;LDA	CHN7_RET0_BAK3,		01H
+3117			   3117: 	;STA	CHN7_FINAL_RET0,		01H
+3118	0x05d0	0x38ba	   3118: 	LDA	CHN7_RET1_BAK3,		01H
+3119	0x05d1	0x3cbd	   3119: 	STA	CHN7_FINAL_RET1,	01H
+3120	0x05d2	0x38bb	   3120: 	LDA	CHN7_RET2_BAK3,		01H
+3121	0x05d3	0x3cbe	   3121: 	STA	CHN7_FINAL_RET2,	01H
+3122			   
+3123			   3123: ;----------------------------
+3124			   3124: ;调整为CHN7_FINAL_RET0存放低4位，CHN7_FINAL_RET1存放中4位，CHN7_FINAL_RET2存放高2位
+3125			   3125: 	;LDA 	CHN7_FINAL_RET1,		01H
+3126			   3126: 	;SHR
+3127			   3127: 	;STA 	CHN7_FINAL_RET1,		01H
+3128			   
+3129			   3129: 	;BNC 	$+3
+3130			   3130: 	;LDI 	TBR,			0100B
+3131			   3131: 	;ORM 	CHN7_FINAL_RET0,		01H
+3132			   
+3133			   3133: 	;LDA 	CHN7_FINAL_RET1,		01H
+3134			   3134: 	;SHR
+3135			   3135: 	;STA 	CHN7_FINAL_RET1,		01H	
+3136			   
+3137			   3137: 	;BNC 	$+3
+3138			   3138: 	;LDI 	TBR,			1000B
+3139			   3139: 	;ORM 	CHN7_FINAL_RET0,		01H
+3140			   
+3141			   
+3142			   3142: 	;LDA 	CHN7_FINAL_RET2,		01H
+3143			   3143: 	;SHR
+3144			   3144: 	;STA 	CHN7_FINAL_RET2,		01H	
+3145			   
+3146			   3146: 	;BNC 	$+3
+3147			   3147: 	;LDI 	TBR,			0100B
+3148			   3148: 	;ORM 	CHN7_FINAL_RET1,		01H
+3149			   
+3150			   3150: 	;LDA 	CHN7_FINAL_RET2,		01H
+3151			   3151: 	;SHR
+3152			   3152: 	;STA 	CHN7_FINAL_RET2,		01H	
+3153			   
+3154			   3154: 	;BNC 	$+3
+3155			   3155: 	;LDI 	TBR,			1000B
+3156			   3156: 	;ORM 	CHN7_FINAL_RET1,		01H
+3157			   3157: 	
+3158			   3158: ;----------------------------
+3159			   3159: CAL_CHN7_ADCDATA_END:	
+3160			   
+3161	0x05d4	0xd400	   3161: 	RTNI
+3162			   
+3163			   3163: 	
+3164			   3164: 	END
